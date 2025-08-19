@@ -1,0 +1,12 @@
+name: finetune-lm
+
+dependencies:
+  - datasets
+  - pandas
+  - pip
+  - python >=3.12
+  - pytorch
+  - tqdm
+  - transformers
+  - pip:
+      - sball
