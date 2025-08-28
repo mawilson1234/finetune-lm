@@ -1,33 +1,13 @@
-import gzip
-import json
+import os
 
 from typing import Optional
-from datasets import load_dataset, Dataset, DatasetDict
+from datetime import datetime
 from dataclasses import field
 from dataclasses import dataclass
-
-def load_metadata(dataset_path: str) -> list[dict]:
-	'''
-	Loads the metadata file for a dataset.
-	'''
-	with gzip.open(dataset_path.replace('.txt.gz', '_metadata.json.gz'), 'rt', encoding='utf-8') as in_file:
-		metadata = [json.loads(l) for l in in_file.readlines()]	
-	
-	return metadata
 
 @dataclass
 class DataTrainingArguments:
 	"""Arguments pertaining to what data we are going to input our model for training and eval."""
-	# dataset_name: Optional[str] = field(
-	# 	default=None, 
-	# 	metadata={"help": "The name of the dataset to use (via the datasets library)."}
-	# )
-	
-	# dataset_config_name: Optional[str] = field(
-	# 	default=None,
-	# 	metadata={"help": "The configuration name of the dataset to use (via the datasets library)."}
-	# )
-	
 	train_file: Optional[str] = field(
 		default=None, 
 		metadata={"help": "The input training data file (a txt.gz file)."}
@@ -73,12 +53,26 @@ class DataTrainingArguments:
 		},
 	)
 	
+	per_device_train_batch_size: Optional[int] = field(
+		default=32,
+		metadata={
+			"help": "Number of training examples per batch per device."
+		}
+	)
+	
 	max_val_samples: Optional[int] = field(
 		default=None,
 		metadata={
 			"help": "For debugging purposes or quicker training, truncate the number of validation examples to this "
 			"value if set."
 		},
+	)
+	
+	per_device_validation_batch_size: Optional[int] = field(
+		default=32,
+		metadata={
+			"help": "Number of validation examples per batch per device."
+		}
 	)
 	
 	ignore_pad_token_for_loss: Optional[bool] = field(
@@ -88,10 +82,24 @@ class DataTrainingArguments:
 		},
 	)
 	
+	lr: Optional[float] = field(
+		default=2e-6,
+		metadata={
+			"help": "Learning rate."
+		}
+	)
+	
 	epochs: Optional[int] = field(
 		default=250,
 		metadata={
-			"help": "How many epochs to train for."
+			"help": "How many (max) epochs to train for."
+		}
+	)
+	
+	min_epochs: Optional[int] = field(
+		default=0,
+		metadata={
+			"help": "The minimum number of epochs to train for. Overrides patience."
 		}
 	)
 	
@@ -103,7 +111,7 @@ class DataTrainingArguments:
 		}
 	)
 	
-	delta: Optional[float]: field(
+	delta: Optional[float] = field(
 		default=0.,
 		metadata={
 			"help": "How much improvement on validation loss is needed to reset the patience counter. '0' means"
@@ -111,8 +119,85 @@ class DataTrainingArguments:
 		}
 	)
 	
+	use_kl_baseline_loss: Optional[bool] = field(
+		default=False,
+		metadata={
+			"help": "Whether to add the KL divergence between the fine-tuned model's predictions and the original "
+			"model's predictions to the loss term."
+		}
+	)
+	
+	kl_dataset: Optional[str] = field(
+		default=None,
+		metadata={
+			"help": "If using the KL baseline loss term, the path to the dataset used to compute it."
+		}
+	)
+	
+	kl_batch_size: Optional[int] = field(
+		default=32,
+		metadata={
+			"help": "If using the KL baseline loss term, how many examples to run per batch for it."
+		}
+	)
+	
+	kl_n_examples_per_batch: Optional[int] = field(
+		default=20,
+		metadata={
+			"help": "If using the KL baseline loss term, how many examples to use per weight update "
+			"to compute it. Keeping this smaller is generally better even if using GPU, since otherwise "
+			"a lot of time is wasted computing outputs for pad tokens."
+		}
+	)
+	
+	kl_scaleby: Optional[float] = field(
+		default=2.5,
+		metadata={
+			"help": "If using the KL baseline loss term, how much to scale it by."
+		}
+	)
+	
+	kl_max_samples: Optional[int] = field(
+		default=None,
+		metadata={
+			"help": "For debugging purposes or quicker training, truncate the number of total examples in the "
+			"KL baseline loss term dataset to this value if set."
+		},
+	)
+	
+	kl_reduction: Optional[str] = field(
+		default='none',
+		metadata={
+			"help": "Which reduction strategy to use for the KL baseline loss term. Default is 'none'; see "
+			"`torch.nn.KLDivLoss` documentation for details. It is *highly* recommended you don't change this, "
+			"since doing so could lead to loss being included for pad tokens."
+		}
+	)
+	
+	output_dir: Optional[str] = field(
+		default=None,
+		metadata={
+			"help": "Used to store the output directory name. Do not set manually."
+		}	
+	)
+	
+	def _set_output_dir(self, model_name: str) -> None:
+		self.output_dir = os.path.join(
+			'outputs',
+			os.path.split(self.train_file)[-1].replace('.txt.gz', ''),
+			model_name.replace("/", "-"),
+			datetime.now().strftime('%Y-%m-%d_%I-%M-%S.%f'),
+		)
+		while os.path.isdir(self.output_dir):
+			self.output_dir = os.path.join(
+				'outputs',
+				os.path.split(self.train_file)[-1].replace('.txt.gz', ''),
+				model_name.replace("/", "-"),
+				datetime.now().strftime('%Y-%m-%d_%I-%M-%S.%f'),
+			)
+	
 	def __post_init__(self):
-		if self.dataset_name is None and self.train_file is None and self.validation_file is None:
+		if self.train_file is None and self.validation_file is None:
 			raise ValueError("Need either a dataset name or a training/validation file.")
 		
 		if self.train_file is not None:
@@ -130,9 +215,13 @@ class DataTrainingArguments:
 			
 			if not extension in ['txt']:
 				raise ValueError("`validation_file` should be a txt file.")
-			
-			self.validation_dataset = load_dataset('text', data_files={'test': self.validation_file})
-			self.validation_metadata = load_metadata(self.validation_file)
 		
-		if self.val_max_target_length is None:
-			self.val_max_target_length = self.max_target_length
+		if self.min_epochs > self.epochs:
+			raise ValueError(
+				f'`min_epochs` {min_epochs} cannot be greater than `epochs` {epochs}.'
+			)
+		
+		if self.output_dir is not None:
+			raise ValueError(
+				f'`output_dir` is used internally. It should not be set manually.'
+			)

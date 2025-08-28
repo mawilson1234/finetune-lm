@@ -30,3 +30,5 @@ facebook/
 facebook
 
 core/llama_3_1/unused/
+
+datamaker/datasets/miniboki-*/**/cache*

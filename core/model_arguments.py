@@ -1,9 +1,13 @@
 import os
 
+from typing import Optional
 if __name__ == '__main__':
-	from constants import *
-else:
 	from .constants import *
+else:
+	from constants import *
+	
+from dataclasses import field
+from dataclasses import dataclass
 
 @dataclass
 class ModelArguments:
@@ -42,6 +46,13 @@ class ModelArguments:
 			"with private models)."
 		},
 		repr=False,
+	)
+	
+	use_gpu: Optional[bool] = field(
+		default=False,
+		metadata={
+			"help": "Set to use the GPU if available. If no GPU is available, the CPU will be used instead."
+		}
 	)
 	
 	def __post_init__(self):
