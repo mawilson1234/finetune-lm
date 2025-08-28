@@ -1,11 +1,14 @@
 import os
+import torch
+import logging
+logger = logging.getLogger(__name__)
 
 from typing import Optional
 if __name__ == '__main__':
 	from .constants import *
 else:
 	from constants import *
-	
+
 from dataclasses import field
 from dataclasses import dataclass
 
@@ -71,5 +74,8 @@ class ModelArguments:
 		if self.token is not None and os.path.isfile(os.path.expanduser(self.token)):
 			with open(os.path.expanduser(self.token), 'rt') as in_file:
 				self.token = in_file.read().strip()
-			
+		
 		self.from_flax = self.model_name_or_path in MUELLER_T5_MODELS
+		if not torch.cuda.is_available() and self.use_gpu:
+			self.use_gpu = False
+			logger.warning('`use_gpu` was set, but no GPU was found. Defaulting to CPU.')

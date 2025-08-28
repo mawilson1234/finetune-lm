@@ -16,10 +16,10 @@ echo "Running script scripts/crined_drink/gpt2-crined-dr-optim.sh"
 echo ""
 
 python core/finetune_lm.py \
-	--model_name_or_path gpt2
+	--model_name_or_path gpt2 \
 	--use_gpu \
 	--train_file "'data/crined_transitive_SVO-OSV_dr_for_human_exp/crined_transitive_SVO-OSV_dr_for_human_exp.txt.gz'" \
-	--validation_file "'data/crined_passive_SVO-OSV_dr_for_human_exp/crined_transitive_SVO-OSV_dr_for_human_exp.txt.gz'" \
+	--validation_file "'data/crined_passive_SVO-OSV_dr_for_human_exp/crined_passive_SVO-OSV_dr_for_human_exp.txt.gz'" \
 	--patience 30 \
 	--epochs 5000 \
 	--min_epochs 100 \
