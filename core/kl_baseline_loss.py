@@ -16,7 +16,15 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers import logging as lg
 lg.set_verbosity_error()
 
-from datasets import load_dataset, Dataset, DatasetDict
+from datasets import (
+	load_dataset, 
+	Dataset, 
+	DatasetDict, 
+	disable_caching
+)
+# otherwise a cache file is saved for every time KL loss is run,
+# which we don't want
+disable_caching()
 from datasets.utils import logging as dataset_utils_logging
 from datasets.utils import disable_progress_bar
 disable_progress_bar()
