@@ -131,3 +131,11 @@ However, in order to facilitate setting other parameters, a custom argument pars
 - If an argument name is not followed by a value (i.e., the next thing is an argument starting with `--`), the value of that argument will be boolean `True`.
 
 - Default values for dictionary arguments in dataclasses will be merged with those provided on the command line. If you want to remove a key from one of the default dictionaries above instead of overwriting it with a new value, set the value of the corresponding key to `__delete_field__` in your script call, and the key will be removed entirely from the dictionary.
+
+## Outputs
+
+The default output directory is 'outputs/${train_file}/${model_name_or_path}/${year-month-day_hour_minute_second.nanoseconds}'.
+
+When running an optimization study, outputs will be `config.txt`, a log file displaying all the config options tried over the course of the study, as well as `optimization_results.csv.gz`, a CSV containing the results of the study. This has the loss value associated with each combination of hyperparameters tried during the study.
+
+When not running an optimization study, outputs will be `config.txt`, a log file displaying the config options used to fine-tune the model. The `model` subdirectory stores the model state that performed best on the validation dataset, and `tokenizer` stores the tokenizer. `metrics.csv.gz` is a CSV with per-token surprisals for every sentence for the test and validation datasets for every batch in every epoch. `loss_curves.pdf` plots the training and validation loss (as well as the training + KL divergence loss, if that option is used) for all batches and epochs.
