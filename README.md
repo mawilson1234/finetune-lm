@@ -132,6 +132,8 @@ However, in order to facilitate setting other parameters, a custom argument pars
 
 - Default values for dictionary arguments in dataclasses will be merged with those provided on the command line. If you want to remove a key from one of the default dictionaries above instead of overwriting it with a new value, set the value of the corresponding key to `__delete_field__` in your script call, and the key will be removed entirely from the dictionary.
 
+- To pass a list of values as an argument, put all values to be added to the list following the argument name, before the next argument name. For instance, `--params.lr.values 1e-5 1e-4 --use_gpu` will be parsed as `{'params': {'lr': {'values': [1e-5, 1e-4]}}, 'use_gpu': True}`.
+
 ## Outputs
 
 The default output directory is 'outputs/${train_file}/${model_name_or_path}/${year-month-day_hour_minute_second.nanoseconds}'.
