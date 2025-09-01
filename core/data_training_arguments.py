@@ -201,7 +201,18 @@ class DataTrainingArguments:
 		}	
 	)
 	
+	test_output_file_prefix: str = field(
+		default=None,
+		metadata={
+			'help': 'What the prefix of the output file for the test datasets should be. '
+			'Default uses the model name, with `/`, replaced by `-`.'
+		}
+	)
+	
 	def _set_output_dir(self, model_name: str) -> None:
+		if self.output_dir is not None:
+			return
+		
 		self.output_dir = os.path.join(
 			'outputs',
 			os.path.split(self.train_file)[-1].replace('.txt.gz', ''),
@@ -217,8 +228,8 @@ class DataTrainingArguments:
 			)
 	
 	def __post_init__(self):
-		if self.train_file is None and self.validation_file is None:
-			raise ValueError("Need either a dataset name or a training/validation file.")
+		if self.train_file is None and self.validation_file is None and self.test_file is None:
+			raise ValueError("Need a training/validation file or a test file.")
 		
 		if self.train_file is not None:
 			extension = self.train_file.split(".")[-1]
@@ -236,12 +247,26 @@ class DataTrainingArguments:
 			if not extension in ['txt']:
 				raise ValueError("`validation_file` should be a txt file.")
 		
+		if self.test_file is not None:
+			test_file = self.test_file
+			if isinstance(test_file, str):
+				test_file = [test_file]
+			
+			for file in test_file:
+				extension = file.split('.')[-1]
+				if extension == 'gz':
+					extension = file.split('.')[-2]
+				
+				if not extension in ['txt']:
+					raise ValueError("All test files should be a txt file.")
+		
 		if self.min_epochs > self.epochs:
 			raise ValueError(
 				f'`min_epochs` {min_epochs} cannot be greater than `epochs` {epochs}.'
 			)
 		
-		if self.output_dir is not None:
+		if self.output_dir is not None and self.train_file:
 			raise ValueError(
-				f'`output_dir` is used internally. It should not be set manually.'
+				'`output_dir` is used internally for training. It should not be set manually unless running '
+				'on test files only.'
 			)

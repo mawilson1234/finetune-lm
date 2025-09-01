@@ -210,6 +210,25 @@ def preprocess_dataset(
 			truncation=True
 		)
 		
+		start_ids = [tokenizer.bos_token_id, tokenizer.cls_token_id]
+		start_ids = [token_id for token_id in start_ids if token_id is not None]
+		if any(start_ids):
+			start_id = start_ids[0]
+			for i in range(len(model_inputs['input_ids'])):
+				# add the cls/bos token to models that don't automatically include it
+				# such as gpt2. we also need to ensure the other keys are the same length.
+				# this should be done for fine-tuning, and also for evaluation with surprisals.
+				# it's just not done automatically because it's not needed for open-ended
+				# text generation (see https://github.com/huggingface/transformers/issues/3311)
+				if model_inputs['input_ids'][i][0] != start_id:
+					model_inputs['input_ids'][i].insert(0, start_id)
+					for k in model_inputs.keys():
+						if k == 'attention_mask':
+							model_inputs[k][i].insert(0, 1)
+						
+						if k == 'token_type_ids':
+							model_inputs[k][i].insert(0, 0)
+		
 		if tokenizer.name_or_path in NEXT_WORD_MODELS:
 			model_inputs['labels'] = model_inputs['input_ids'].copy()
 		
@@ -589,41 +608,41 @@ def finetune_model(
 					f'(min_epochs={data_args.min_epochs}). Halting training at epoch {epoch}.'
 				)
 				break
+	
+	if trial is None:
+		metrics = pd.DataFrame(metrics)
+		metrics = metrics.assign(
+			model_name=re.sub('["\']', '', model.config.name_or_path),
+			task=get_model_task(model.config.name_or_path),
+			n_params=f'{round(model.num_parameters()/1000000)}M',
+		)
 		
-		if trial is None:
-			metrics = pd.DataFrame(metrics)
-			metrics = metrics.assign(
-				model_name=re.sub('["\']', '', model.config.name_or_path),
-				task=get_model_task(model.config.name_or_path),
-				n_params=f'{round(model.num_parameters()/1000000)}M',
-			)
-			
-			move_to_beginning = ['model_name', 'task', 'n_params']
-			metrics = metrics[move_to_beginning + [c for c in metrics.columns if not c in move_to_beginning]]
-			save_loss_plot(output_dir=data_args.output_dir, metrics=metrics)
-			
-			metrics.to_csv(os.path.join(data_args.output_dir, 'metrics.csv.gz'), index=False, na_rep='NA')
-			
-			logger.info(f'Saving model state with lowest dev loss (epoch={best_epoch}) to disk')
-			model.save_pretrained(
-				save_directory=os.path.join(data_args.output_dir, 'model'), 
-				state_dict=best_model_state_dict,
-			)
-			
-			# do this so that the model is in its best performing state
-			# if we go on to use it later in the script
-			logger.info('Loading model state with lowest dev loss')
-			model.load_state_dict(best_model_state_dict)
-			
-			# save the tokenizer, too. This is a bit redundant, since we haven't modified it,
-			# but it doesn't take up much space, and it makes it easier when loading later,
-			# since we don't have to guess what the right tokenizer is.
-			tokenizer.save_pretrained(
-				save_directory=os.path.join(data_args.output_dir, 'tokenizer'),
-			)
+		move_to_beginning = ['model_name', 'task', 'n_params']
+		metrics = metrics[move_to_beginning + [c for c in metrics.columns if not c in move_to_beginning]]
+		save_loss_plot(output_dir=data_args.output_dir, metrics=metrics)
 		
-		# send back the lowest dev loss for optuna
-		return best_dev_loss
+		metrics.to_csv(os.path.join(data_args.output_dir, 'metrics.csv.gz'), index=False, na_rep='NA')
+		
+		logger.info(f'Saving model state with lowest dev loss (epoch={best_epoch}) to disk')
+		model.save_pretrained(
+			save_directory=os.path.join(data_args.output_dir, 'model'), 
+			state_dict=best_model_state_dict,
+		)
+		
+		# do this so that the model is in its best performing state
+		# if we go on to use it later in the script
+		logger.info('Loading model state with lowest dev loss')
+		model.load_state_dict(best_model_state_dict)
+		
+		# save the tokenizer, too. This is a bit redundant, since we haven't modified it,
+		# but it doesn't take up much space, and it makes it easier when loading later,
+		# since we don't have to guess what the right tokenizer is.
+		tokenizer.save_pretrained(
+			save_directory=os.path.join(data_args.output_dir, 'tokenizer'),
+		)
+	
+	# send back the lowest dev loss for optuna
+	return best_dev_loss
 
 def get_model_eval_function(model_name_or_path: str) -> Callable:
 	'''
@@ -890,10 +909,15 @@ def finetune_lm(
 		)
 		move_to_beginning = ['model_name', 'task', 'n_params', 'dataset_name']
 		test_results = test_results[move_to_beginning + [c for c in test_results.columns if not c in move_to_beginning]]
+		if data_args.test_output_file_prefix is None:
+			basename = re.sub(r'[\\/]', '-', model.name_or_path)
+		else:
+			basename = data_args.test_output_file_prefix
+		
 		test_results.to_csv(
 			os.path.join(
 				data_args.output_dir,
-				re.sub(r'[\\/]', '-', model.name_or_path) + '-test_results.csv.gz'
+				f'{basename}-test_results.csv.gz'
 			),
 			index=False,
 			na_rep='NA',

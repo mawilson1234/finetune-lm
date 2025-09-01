@@ -58,6 +58,13 @@ class ModelArguments:
 		}
 	)
 	
+	model_task: Optional[str] = field(
+		default=None,
+		metadata={
+			'help': 'Allows manually setting model task to one of `lm`, `mlm`, `seq2seq` on the command line.'
+		}
+	)
+	
 	def __post_init__(self):
 		self.config_name = self.config_name or self.model_name_or_path
 		self.tokenizer_name = self.tokenizer_name or self.model_name_or_path
@@ -79,3 +86,22 @@ class ModelArguments:
 		if not torch.cuda.is_available() and self.use_gpu:
 			self.use_gpu = False
 			logger.warning('`use_gpu` was set, but no GPU was found. Defaulting to CPU.')
+		
+		if self.model_task is not None:
+			if self.model_task.lower() == 'lm':
+				self.model_task = 'LM'
+			elif self.model_task.lower() == 'mlm':
+				self.model_task = 'MLM'
+			elif self.model_task.lower() == 'seq2seq':
+				self.model_task = 'Seq2Seq'
+			else:
+				raise ValueError(
+					'`--model_task`, when provided, must be one of `lm`, `mlm`, or `seq2seq` (case insensitive), '
+					f'but {self.model_task} was provided instead!'
+				)
+			
+			set_model_task(model_name_or_path=self.model_name_or_path, model_task=self.model_task)
+			# we need to set this, too, since it may be different if this is being set manually
+			# (e.g., for a local model + tokenizer, which may be in different directories)
+			if self.tokenizer_name != self.model_name_or_path:
+				set_model_task(model_name_or_path=self.tokenizer_name, model_task=self.model_task)

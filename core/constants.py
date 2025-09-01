@@ -205,6 +205,32 @@ DATASETS: set[str] = set(
 	os.listdir(os.path.join(os.path.dirname(__file__), '..', 'data'))
 )
 
+def set_model_task(model_name_or_path: str, model_task: str) -> None:
+	'''
+	Used to set the model task manually. This is useful for fine-tuned models,
+	for which we might not want to update constants.py, but instead provide the
+	model task from the command line.
+	'''
+	# default case, no command line argument passed,
+	# no update to ALL_MODELS needed.
+	if model_task is None:
+		return
+	
+	if model_task.lower() == 'lm':
+		NEXT_WORD_MODELS.update({model_name_or_path})
+	
+	if model_task.lower() == 'mlm':
+		MASKED_LANGUAGE_MODELS.update({model_name_or_path})
+	
+	if model_task.lower() == 'seq2seq':
+		SEQ2SEQ_MODELS.update({model_name_or_path})
+	
+	ALL_MODELS.update(
+		NEXT_WORD_MODELS |
+		MASKED_LANGUAGE_MODELS |
+		SEQ2SEQ_MODELS
+	)
+
 def is_huggingface_model(model_name_or_path: str) -> bool:
 	'''
 	Is the model compatible with the Hugging Face API or not?
