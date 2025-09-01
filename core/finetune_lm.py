@@ -745,7 +745,7 @@ def finetune_lm(
 		max_samples=data_args.max_train_samples,
 		split='train'
 	)
-	train_texts = train_texts['train']['text']
+	train_texts = list(train_texts['train']['text'])
 	
 	validation_texts = load_dataset('text', data_files={'validation': data_args.validation_file})
 	validation_dataset = preprocess_dataset(
@@ -755,7 +755,7 @@ def finetune_lm(
 		max_samples=data_args.max_val_samples,
 		split='validation'
 	)
-	validation_texts = validation_texts['validation']['text']
+	validation_texts = list(validation_texts['validation']['text'])
 	
 	return finetune_model(
 		model=model, 
