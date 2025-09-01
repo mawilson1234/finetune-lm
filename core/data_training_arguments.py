@@ -18,6 +18,11 @@ class DataTrainingArguments:
 		metadata={"help": "An evaluation data file to evaluate model performance on (a txt.gz file)."},
 	)
 	
+	test_file: Optional[str] = field(
+		default=None,
+		metadata={"help": "A test data file or files to evaluate model performance on (a txt.gz file)."},
+	)
+	
 	overwrite_cache: bool = field(
 		default=False, 
 		metadata={"help": "Overwrite the cached training and evaluation sets"}
@@ -72,6 +77,21 @@ class DataTrainingArguments:
 		default=32,
 		metadata={
 			"help": "Number of validation examples per batch per device."
+		}
+	)
+	
+	max_test_samples: Optional[int] = field(
+		default=None,
+		metadata={
+			"help": "For debugging purposes or quicker training, truncate the number of test examples to this "
+			"value if set."
+		},
+	)
+	
+	per_device_test_batch_size: Optional[int] = field(
+		default=32,
+		metadata={
+			"help": "Number of test examples per batch per device."
 		}
 	)
 	

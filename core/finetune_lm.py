@@ -294,7 +294,7 @@ def finetune_model(
 	model_args: ModelArguments,
 	data_args: DataTrainingArguments,
 	trial: optuna.trial.Trial = None,
-) -> None:
+) -> float:
 	'''
 	Finetunes a language model.
 	
@@ -305,6 +305,9 @@ def finetune_model(
 	validation_dataset (Dataset): the validation dataset.
 	data_args (DataTrainingArguments): additional DataTrainingArguments.
 									   see DataTrainingArguments for details.
+	
+	returns:
+		float: the best loss on the validation dataset
 	'''
 	def compute_loss(
 		outputs: 'CausalLMOutput', 
@@ -415,8 +418,6 @@ def finetune_model(
 			model_kwargs=model.model_kwargs, 
 			tokenizer_kwargs=tokenizer.tokenizer_kwargs
 		)
-	
-	basename = re.sub(r'[\\/]', '-', model.name_or_path)
 	
 	# make sure we don't run into directory conflicts.
 	# somehow, this does happen rarely if we run in parallel, even
@@ -609,6 +610,11 @@ def finetune_model(
 				state_dict=best_model_state_dict,
 			)
 			
+			# do this so that the model is in its best performing state
+			# if we go on to use it later in the script
+			logger.info('Loading model state with lowest dev loss')
+			model.load_state_dict(best_model_state_dict)
+			
 			# save the tokenizer, too. This is a bit redundant, since we haven't modified it,
 			# but it doesn't take up much space, and it makes it easier when loading later,
 			# since we don't have to guess what the right tokenizer is.
@@ -635,6 +641,74 @@ def tokenize_texts(tokenizer: AutoTokenizer, text: list[str]) -> list[list[int]]
 	'''
 	tokenized = tokenizer(text, add_special_tokens=False)['input_ids']
 	return tokenized
+
+def extract_surprisals(
+	model: AutoModelForCausalLM,
+	tokenizer: AutoTokenizer,
+	dataset: Dataset,
+	metadata: list[dict],
+	input_texts: list[str],
+	model_args: ModelArguments,
+	data_args: DataTrainingArguments,
+	**additional_metadata: dict,
+) -> list[dict]:
+	'''
+	Evaluates a model on the test dataset.
+	Saves results in data_args.output_dir as a csv.
+	
+	params:
+		model (AutoModelForCausalLM)		: the model to evaluate.
+		tokenizer (AutoTokenizer)			: the tokenizer for the model
+		dataset (Dataset)					: the dataset to evaluate on
+		metadata (list[dict])				: the metadata for each example
+		input_texts (list[str])				: the dataset as input strings.
+		model_args (ModelArguments)			: the ModelArguments.
+		data_args (DataTrainingArguments)	: the arguments containing information about the data.
+											  see the DataTrainingArguments class for more details.
+		**additional_metadata				: additional metadata to add to each dictionary in the
+											  output
+	
+	returns:
+		list[dict]: a list of dictionaries containing surprisals for each token of each sentence
+				    in the test dataset along with associated metadata.
+	'''
+	dataloader = DataLoader(
+		dataset,
+		batch_size=data_args.per_device_test_batch_size,
+		collate_fn=pad_batch,
+	)
+	_ = model.eval()
+	
+	n_observed_examples = 0
+	metrics = []
+	for i, inputs in tqdm(enumerate(dataloader), total=len(dataloader)):
+		inputs = {k: v.to(model.device) for k, v in inputs.items() if isinstance(v, torch.Tensor)}
+		n_examples_in_batch = inputs['input_ids'].shape[0]
+		
+		# use this as a unique input identifier
+		input_nums = range(n_observed_examples, n_observed_examples + n_examples_in_batch)
+		n_observed_examples += n_examples_in_batch
+		
+		batch_texts = input_texts[(n_observed_examples - n_examples_in_batch):n_observed_examples]
+		batch_metadata = metadata[(n_observed_examples - n_examples_in_batch):n_observed_examples]
+		
+		with torch.no_grad():
+			batch_outputs = model(**inputs)
+		
+		metrics.extend(
+			evaluate_batch(
+				model=model,
+				tokenizer=tokenizer,
+				inputs=inputs,
+				input_texts=input_texts,
+				batch_outputs=batch_outputs,
+				input_nums=input_nums,
+				batch_metadata=batch_metadata,
+				**additional_metadata,
+			)
+		)
+	
+	return metrics
 
 def evaluate_batch(
 	model: AutoModelForCausalLM,
@@ -724,7 +798,7 @@ def finetune_lm(
 	data_args: DataTrainingArguments, 
 	optim_args: OptimizationArguments,
 	trial: Optional[optuna.trial.Trial] = None
-) -> torch.Tensor:
+) -> float:
 	'''Main function.'''
 	if optim_args.do_optimize:
 		optim_args.set_suggested_values(data_args=data_args, trial=trial)
@@ -737,37 +811,96 @@ def finetune_lm(
 	
 	tokenizer, model = load_tokenizer_and_model(model_args)
 	
-	train_texts = load_dataset('text', data_files={'train': data_args.train_file})
-	train_dataset = preprocess_dataset(
-		dataset=train_texts,
-		data_args=data_args,
-		tokenizer=tokenizer,
-		max_samples=data_args.max_train_samples,
-		split='train'
-	)
-	train_texts = list(train_texts['train']['text'])
+	# if we don't provide a train file, this lets us just evaluate the model
+	if data_args.train_file:
+		train_texts = load_dataset('text', data_files={'train': data_args.train_file})
+		train_dataset = preprocess_dataset(
+			dataset=train_texts,
+			data_args=data_args,
+			tokenizer=tokenizer,
+			max_samples=data_args.max_train_samples,
+			split='train'
+		)
+		train_texts = list(train_texts['train']['text'])
+		
+		validation_texts = load_dataset('text', data_files={'validation': data_args.validation_file})
+		validation_dataset = preprocess_dataset(
+			dataset=validation_texts,
+			data_args=data_args,
+			tokenizer=tokenizer,
+			max_samples=data_args.max_val_samples,
+			split='validation'
+		)
+		validation_texts = list(validation_texts['validation']['text'])
+		
+		best_dev_loss = finetune_model(
+			model=model, 
+			tokenizer=tokenizer,
+			train_dataset=train_dataset,
+			train_texts=train_texts,
+			validation_dataset=validation_dataset,
+			validation_texts=validation_texts,
+			model_args=model_args,
+			data_args=data_args,
+			trial=trial,
+		)
 	
-	validation_texts = load_dataset('text', data_files={'validation': data_args.validation_file})
-	validation_dataset = preprocess_dataset(
-		dataset=validation_texts,
-		data_args=data_args,
-		tokenizer=tokenizer,
-		max_samples=data_args.max_val_samples,
-		split='validation'
-	)
-	validation_texts = list(validation_texts['validation']['text'])
+	# only run the test if we're not optimizing, since we shouldn't optimize
+	# on the test datasets anyway
+	if trial is None and data_args.test_file:
+		# if we only have one dataset, put it in a list
+		# so the loop below works
+		if isinstance(data_args.test_file, str):
+			data_args.test_file = [data_args.test_file]
+		
+		test_results = []
+		logger.info('Beginning testing...')
+		for test_file in data_args.test_file:
+			test_texts = load_dataset('text', data_files={'test': test_file})
+			test_dataset = preprocess_dataset(
+				dataset=test_texts,
+				data_args=data_args,
+				tokenizer=tokenizer,
+				max_samples=data_args.max_test_samples,
+				split='test'
+			)
+			test_texts = list(test_texts['test']['text'])
+			test_metadata = load_metadata(test_file)
+			
+			test_results.extend(
+				extract_surprisals(
+					model=model,
+					tokenizer=tokenizer,
+					dataset=test_dataset,
+					metadata=test_metadata,
+					input_texts=test_texts,
+					model_args=model_args,
+					data_args=data_args,
+					**dict(
+						dataset_name=os.path.split(test_file)[-1].replace('.txt.gz', '')
+					)
+				)
+			)
+		
+		test_results = pd.DataFrame(test_results)
+		test_results = test_results.assign(
+			model_name=data_args.output_dir,
+			task=get_model_task(model.config.name_or_path),
+			n_params=f'{round(model.num_parameters()/1000000)}M',
+		)
+		move_to_beginning = ['model_name', 'task', 'n_params', 'dataset_name']
+		test_results = test_results[move_to_beginning + [c for c in test_results.columns if not c in move_to_beginning]]
+		test_results.to_csv(
+			os.path.join(
+				data_args.output_dir,
+				re.sub(r'[\\/]', '-', model.name_or_path) + '-test_results.csv.gz'
+			),
+			index=False,
+			na_rep='NA',
+		)
 	
-	return finetune_model(
-		model=model, 
-		tokenizer=tokenizer,
-		train_dataset=train_dataset,
-		train_texts=train_texts,
-		validation_dataset=validation_dataset,
-		validation_texts=validation_texts,
-		model_args=model_args,
-		data_args=data_args,
-		trial=trial,
-	)
+	if data_args.train_file:
+		return best_dev_loss
 
 def optimize_finetune_lm(
 	model_args: ModelArguments, 

@@ -37,6 +37,7 @@ The `DataTrainingArguments` dataclass accepts the following parameters:
 
 - `train_file`: the path to the `.txt.gz` file described above
 - `validation_file`: see `train_file`, but for the validation dataset
+- `test_file`: see `train_file`, but for the test dataset(s). If a list is provided, evaluation will be run on all test datasets and saved in a single file, with each dataset's name in the 'dataset_name' column.
 - `overwrite_cache`: default is `False`
 - `preprocessing_num_workers`: default is `None`
 - `max_length`: default is `1024`
@@ -45,6 +46,8 @@ The `DataTrainingArguments` dataclass accepts the following parameters:
 - `per_device_train_batch_size`: default is `32`
 - `max_val_samples`: default is `None` (uses all examples)
 - `per_device_validation_batch_size`: default is `32`
+- `max_test_samples`: default is `None` (uses all examples). The same value applies to all test datasets.
+- `per_device_validation_batch_size`: default is `32`. The same value applies to all test datasets.
 - `ignore_pad_for_token_loss`: default is `True`
 - `lr`: default is `2e-6`
 - `epochs`: default is `250`
