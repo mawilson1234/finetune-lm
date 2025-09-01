@@ -181,9 +181,12 @@ class OptimizationArguments:
 				# is missing entirely, rather than None.
 				suggest_kwargs.update(v.get('suggest_kwargs', {}) or {})
 			
-			if isinstance(getattr(data_args, k), int):
+			# we allow setting a 'type' entry in the value dict to
+			# override behavior depending on whether the default
+			# value for the hyperparamater is an int or a float
+			if isinstance(getattr(data_args, k), int) or v.get('type') == 'int':
 				setattr(data_args, k, trial.suggest_int(**suggest_kwargs))
-			elif isinstance(getattr(data_args, k), float):
+			elif isinstance(getattr(data_args, k), float) or v.get('type') == 'float':
 				setattr(data_args, k, trial.suggest_float(**suggest_kwargs))
 			else:
 				raise ValueError(

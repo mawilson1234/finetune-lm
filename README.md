@@ -107,7 +107,7 @@ The `OptimizationArguments` dataclass accepts the following parameters:
 		}
 	}
 	```
-	Any keyword arguments provided in `suggest_kwargs` for a particular parameter are passed to the `suggest_` function of the Optuna `trial` object.
+	Any keyword arguments provided in `suggest_kwargs` for a particular parameter are passed to the `suggest_` function of the Optuna `trial` object. The default behavior is to suggest a value of the same type as the default value for the hyperparameter specified in `DataTrainingArguments`. However, if a `type` is provided for a hyperparameter's dictionary, and the argument provided has a default value that is either `float` or `int`, the `type` key can map to one of `"float"` or `"int"` to override the default behavior. (Non-numeric defaults can only be suggested as categorical values.) For instance, if the default value of the hyperparameter `lr` is set to `1` (for argument's sake), the default behavior would be to suggest an integer value when optimizing `lr`. However, if `--params.lr.type float` is set, a float in the range specified by `params.lr.values` will be suggested instead.
 
 ## Passing command line arguments
 
