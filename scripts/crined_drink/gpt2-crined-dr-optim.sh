@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=gpt2-crined-dr-optim.sh
+#SBATCH --job-name=gpt2-crined-dr-optim
 #SBATCH --output=joblogs/%x_%j.txt
 #SBATCH --mem=16G
 #SBATCH --partition=gpu
@@ -26,7 +26,12 @@ python core/finetune_lm.py \
 	--use_kl_baseline_loss \
 	--kl_dataset datamaker/datasets/miniboki-2022-04-01_22-58-30/miniboki \
 	--do_optimize \
-	--optimize_kwargs.n_trials 200 \
+	--optimize_kwargs.n_trials 150 \
+	--study_kwargs.sampler optuna.samplers.TPESampler \
+	--study_kwargs.sampler_kwargs __delete_field__ \
 	--study_kwargs.pruner_kwargs.wrapped_pruner_kwargs.n_startup_steps 0 \
-	--params.lr.values 2e-7 6e-5 \
-	--params.kl_scaleby.values 0.9 2.6
+	--params.lr.values 1e-9 1e-3 \
+	--params.lr.suggest_kwargs.log \
+	--params.kl_scaleby.values 1 5000 \
+	--params.kl_scaleby.type int \
+	--params.kl_scaleby.suggest_kwargs.log

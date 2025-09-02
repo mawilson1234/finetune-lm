@@ -20,6 +20,7 @@ python core/finetune_lm.py \
 	--use_gpu \
 	--train_file "'data/blorked_transitive_SVO-OSV_dr_for_human_exp/blorked_transitive_SVO-OSV_dr_for_human_exp.txt.gz'" \
 	--validation_file "'data/blorked_passive_SVO-OSV_dr_for_human_exp/blorked_passive_SVO-OSV_dr_for_human_exp.txt.gz'" \
+	--test_file "'data/syn_blorked_ext_dr_for_human_exp/syn_blorked_ext_dr_for_human_exp.txt.gz'" "'data/combined_fillers_for_human_exp/combined_fillers_for_human_exp.txt.gz'" \
 	--patience 30 \
 	--epochs 5000 \
 	--min_epochs 100 \
