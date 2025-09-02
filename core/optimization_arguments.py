@@ -1,3 +1,4 @@
+import os
 import optuna
 
 from typing import Optional
@@ -114,16 +115,21 @@ class OptimizationArguments:
 		st_kwargs = {}
 		for k, v in self.study_kwargs.items():
 			# these should just be strings, ints, or floats, so we're good
-			if not any(k.startswith(x) for x in ['sampler', 'pruner']) or v is None:
+			if not any(k.startswith(x) for x in ['sampler', 'pruner', 'storage']) or v is None:
 				st_kwargs[k] = v
 				continue
 			
-			if k in ['sampler', 'pruner']:
+			if k in ['sampler', 'pruner', 'storage']:
 				sp_kwargs = {}
 				for k2, v2 in self.study_kwargs.get(f'{k}_kwargs', {}).items():
 					# these should just be strings, ints, or floats,
 					# so we're good
-					if not any(k2.startswith(x) for x in ['wrapped_pruner', 'gamma', 'weights']):
+					if not any(
+						k2.startswith(x) for x in [
+							'wrapped_pruner', 'gamma', 'weights',
+							'log_storage',
+						]
+					):
 						sp_kwargs[k2] = v2
 						continue
 					
@@ -151,6 +157,31 @@ class OptimizationArguments:
 								.get(f'{k2}_kwargs', {})
 						)
 						sp_kwargs[k2] = callable_function
+					
+					# deal with log storage in case it's an object
+					if k2 in ['log_storage']:
+						if not isinstance(v2, str):
+							log_storage_kwargs = self.study_kwargs.get(f'{k}_kwargs', {}).get(f'{k2}_kwargs', {})
+							if any(x and f'{x}_kwargs' in log_storage_kwargs for x in log_storage_kwargs):
+								for k3, v3 in log_storage_kwargs.copy().items():
+									if k3 and f'{k3}_kwargs' in log_storage_kwargs:
+										log_storage_kwargs[k3] = v3(**log_storage_kwargs[f'{k3}_kwargs'])
+										# we need to delete here since otherwise we end up passing
+										# an extra argument to the storage handler that it won't know
+										# how to deal with. Ideally we'd leave this in for visibility,
+										# but I don't feel like dealing with that headache now.
+										del log_storage_kwargs[f'{k3}_kwargs']
+									
+									# we have to make the directory since optuna doesn't know how to create
+									# directories for us. sigh
+									if k3 == 'file_path':
+										os.makedirs(os.path.split(v3)[0], exist_ok=True)
+							
+							sp_kwargs[k2] = v2(
+								**self.study_kwargs
+									.get(f'{k}_kwargs', {})
+									.get(f'{k2}_kwargs', {})
+							)
 				
 				st_kwargs[k] = v(**sp_kwargs)
 		

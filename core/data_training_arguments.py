@@ -171,9 +171,11 @@ class DataTrainingArguments:
 	)
 	
 	kl_scaleby: Optional[float] = field(
-		default=2.5,
+		default=250,
 		metadata={
-			"help": "If using the KL baseline loss term, how much to scale it by."
+			"help": "If using the KL baseline loss term, how much to scale it by. "
+			"Note that the value returned for the KL baseline loss term is the average "
+			"KL divergence per token."
 		}
 	)
 	
