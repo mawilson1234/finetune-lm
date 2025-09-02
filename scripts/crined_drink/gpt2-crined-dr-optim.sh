@@ -34,4 +34,10 @@ python core/finetune_lm.py \
 	--params.lr.suggest_kwargs.log \
 	--params.kl_scaleby.values 1 5000 \
 	--params.kl_scaleby.type int \
-	--params.kl_scaleby.suggest_kwargs.log
+	--params.kl_scaleby.suggest_kwargs.log \
+	--study_kwargs.storage optuna.storages.JournalStorage \
+	--study_kwargs.storage_kwargs.log_storage optuna.storages.journal.JournalFileBackend \
+	--study_kwargs.storage_kwargs.log_storage_kwargs.file_path "'./outputs/crined_transitive_SVO-OSV_dr_for_human_exp/optuna_journal_storage.log'" \
+	--study_kwargs.storage_kwargs.log_storage_kwargs.lock_obj optuna.storages.journal.JournalFileOpenLock \
+	--study_kwargs.storage_kwargs.log_storage_kwargs.lock_obj_kwargs.filepath "'./outputs/crined_transitive_SVO-OSV_dr_for_human_exp/optuna_journal_storage.log'" \
+	--study_kwargs.load_if_exists
