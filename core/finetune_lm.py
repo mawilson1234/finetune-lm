@@ -962,16 +962,30 @@ def optimize_finetune_lm(
 	if data_args.output_dir is None:
 		data_args._set_output_dir(model_name=model_args.model_name_or_path)
 	
-	optim_args.study.optimize(
-		# we need to wrap finetune_lm in this function since optuna
-		# doesn't support passing additional arguments to the optimized function,
-		# and it will only pass the trial object as a positional argument in the
-		# first slot. In general, we don't want to required using only kwargs in
-		# in the `finetune_lm` function when we're not running a trial, so this is 
-		# how we get around that
-		lambda trial: finetune_lm(model_args=model_args, data_args=data_args, optim_args=optim_args, trial=trial), 
-		**optim_args.optimize_kwargs
-	)
+	trials = optim_args.study.get_trials(deepcopy=False, states=[optuna.trial.TrialState.COMPLETE])
+	n_complete = len(trials)
+	# if we're not limiting the max_trials or if we haven't reached that many trials yet,
+	# run the study
+	if optim_args.max_trials is None or n_complete < optim_args.max_trials:
+		# add the callback if we've set the max trials
+		# if we haven't, we'll just run the full number
+		# of trials set
+		if optim_args.max_trials is not None:
+			optim_args.optimize_kwargs['callbacks'] = (
+				optim_args.optimize_kwargs.get('callbacks', []) + 
+				[optuna.study.MaxTrialsCallback(optim_args.max_trials)]
+			)
+		
+		optim_args.study.optimize(
+			# we need to wrap finetune_lm in this function since optuna
+			# doesn't support passing additional arguments to the optimized function,
+			# and it will only pass the trial object as a positional argument in the
+			# first slot. In general, we don't want to required using only kwargs in
+			# in the `finetune_lm` function when we're not running a trial, so this is 
+			# how we get around that
+			lambda trial: finetune_lm(model_args=model_args, data_args=data_args, optim_args=optim_args, trial=trial), 
+			**optim_args.optimize_kwargs
+		)
 	
 	logger.info(f'Best parameters: {optim_args.study.best_params}')
 	logger.info(f'Best result: {optim_args.study.best_value}')

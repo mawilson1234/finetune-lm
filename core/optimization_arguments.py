@@ -20,6 +20,16 @@ class OptimizationArguments:
 		},
 	)
 	
+	max_trials: Optional[int] = field(
+		default=None,
+		metadata={
+			"help": "The maximum number of trials to run for a study. Useful if storing a study "
+			"to disk and resuming, since optuna adds `optimize_kwargs.n_trials` instead of limiting "
+			"this to the maximum number. This will ensure that even if resuming from disk, at most "
+			"`max_trials` are run."
+		}
+	)
+	
 	study_kwargs: Optional[dict] = field(
 		default_factory = lambda: {
 			"study_name": None,
