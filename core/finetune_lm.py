@@ -973,6 +973,11 @@ def optimize_finetune_lm(
 		# we'll try each of them and then only keep the ones that don't error
 		# due to the current study structure.
 		viz_functions = [v for _, v in vars(optuna.visualization).items() if isinstance(v, types.FunctionType)]
+
+		# if we don't do this, we get a ton of log messages we don't want
+		logging.getLogger('kaleido').setLevel(logging.WARNING)
+		logging.getLogger('choreographer').setLevel(logging.WARNING)
+		
 		# plotly can only save a single file to a pdf. So we'll save them in a
 		# temporary directory, and then merge them into the output dir.
 		with tempfile.TemporaryDirectory(dir=data_args.output_dir) as tempdir:
