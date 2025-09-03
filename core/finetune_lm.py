@@ -33,11 +33,13 @@ import sys
 import gzip
 import json
 import time
+import types
 import torch
 import optuna
 import datasets
 datasets.logging.set_verbosity_error()
 
+import tempfile
 import transformers
 transformers.utils.logging.set_verbosity_error()
 
@@ -49,6 +51,7 @@ import torch.nn.functional as F
 from glob import glob
 from copy import deepcopy
 from tqdm import tqdm, trange
+from PyPDF2 import PdfMerger
 from typing import *
 from pathlib import Path
 from datetime import datetime
@@ -63,6 +66,14 @@ from transformers import (
 )
 from torch.utils.data import DataLoader
 from tqdm.contrib.logging import logging_redirect_tqdm
+
+# we need to do this in a try block so that this 
+# isn't imported lazily, since we'll access the 
+# vars of the module to find the plot functions later
+try:
+	import optuna.visualization
+finally:
+	pass
 
 if __name__ == '__main__':
 	from parser import parse_args_into_dataclasses
@@ -930,7 +941,7 @@ def optimize_finetune_lm(
 	model_args: ModelArguments, 
 	data_args: DataTrainingArguments, 
 	optim_args: OptimizationArguments,
-) -> None:
+) -> optuna.study.Study:
 	'''
 	Wrapper function to optimize the results of finetune_lm.
 	'''
@@ -950,6 +961,29 @@ def optimize_finetune_lm(
 		)
 		
 		df.to_csv(os.path.join(data_args.output_dir, 'optimization_trials.csv.gz'), index=False)
+		
+		# save plots
+		# find all the available visualization functions in optuna currently.
+		# we'll try each of them and then only keep the ones that don't error
+		# due to the current study structure.
+		viz_functions = [v for _, v in vars(optuna.visualization).items() if isinstance(v, types.FunctionType)]
+		# plotly can only save a single file to a pdf. So we'll save them in a
+		# temporary directory, and then merge them into the output dir.
+		with tempfile.TemporaryDirectory(dir=data_args.output_dir) as tempdir:
+			for i, viz_function in enumerate(viz_functions):
+				try:
+					fig = viz_function(study)
+					fig.write_image(os.path.join(tempdir, f'{i:0{len(viz_functions)}d}.pdf'))
+				except Exception:
+					pass
+			
+			files = glob(os.path.join(tempdir, '*.pdf'))
+			if files:
+				with PdfMerger() as merger:
+					for file in files:
+						merger.append(pdf)
+					
+					merger.write(os.path.join(data_args.output_dir, 'optimization_plots.pdf'))			
 	
 	if not optim_args.do_optimize:
 		logger.warning(
@@ -990,6 +1024,8 @@ def optimize_finetune_lm(
 	logger.info(f'Best parameters: {optim_args.study.best_params}')
 	logger.info(f'Best result: {optim_args.study.best_value}')
 	save_optimization_results(study=optim_args.study)
+	
+	return study
 
 if __name__ == '__main__':
 	model_args, data_args, optim_args = parse_arguments(ModelArguments, DataTrainingArguments, OptimizationArguments)

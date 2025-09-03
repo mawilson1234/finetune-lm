@@ -4,7 +4,12 @@ The goal of `finetune-lm` is to provide a flexible framework for fine-tuning and
 
 ## Requirements
 
-Set up the environment using `conda` or `mamba` by running `conda env create -f ./environment.yaml`.
+Set up the environment using `conda` or `mamba` by running `conda env create -f ./environment.yaml`. To enable all plotting features, if you do not have Chrome installed on your system, you will need to install it by running an interactive Python session and executing the following commands:
+
+- `from plotly.io import get_chrome`
+- `get_chrome()`
+
+This will enable saving plots of optimization studies.
 
 ## Usage
 
@@ -62,6 +67,7 @@ The `DataTrainingArguments` dataclass accepts the following parameters:
 - `kl_max_samples`: default is `None` (all samples may be used)
 - `kl_reduction`: default is `'none'`. It is recommended you don't modify this.
 - `output_dir`: Used to store the output directory name. This will be determined automatically.
+- `test_output_file_prefix`: Set the prefix of the output file containing per-token surprisals for each sentence of each test dataset. Default is the model name, with "/" replaced by "-".
 
 #### `OptimizationArguments`
 
@@ -141,6 +147,6 @@ However, in order to facilitate setting other parameters, a custom argument pars
 
 The default output directory is 'outputs/${train_file}/${model_name_or_path}/${year-month-day_hour_minute_second.nanoseconds}'.
 
-When running an optimization study, outputs will be `config.txt`, a log file displaying all the config options tried over the course of the study, as well as `optimization_results.csv.gz`, a CSV containing the results of the study. This has the loss value associated with each combination of hyperparameters tried during the study.
+When running an optimization study, outputs will be `config.txt`, a log file displaying all the config options tried over the course of the study, as well as `optimization_results.csv.gz`, a CSV containing the results of the study. This has the loss value associated with each combination of hyperparameters tried during the study. There will also be a file named `optimization_plots.pdf`, containing plots of the optimization study (described in the documentation for `optuna.visualization`).
 
-When not running an optimization study, outputs will be `config.txt`, a log file displaying the config options used to fine-tune the model. The `model` subdirectory stores the model state that performed best on the validation dataset, and `tokenizer` stores the tokenizer. `metrics.csv.gz` is a CSV with per-token surprisals for every sentence for the test and validation datasets for every batch in every epoch. `loss_curves.pdf` plots the training and validation loss (as well as the training + KL divergence loss, if that option is used) for all batches and epochs.
+When not running an optimization study, outputs will be `config.txt`, a log file displaying the config options used to fine-tune the model. If a training file and validation file are provided (i.e., if a model is being fine-tuned), the `model` subdirectory stores the model state that performed best on the validation dataset, and `tokenizer` stores the tokenizer. `metrics.csv.gz` is a CSV with per-token surprisals for every sentence for the test and validation datasets for every batch in every epoch. `loss_curves.pdf` plots the training and validation loss (as well as the training + KL divergence loss, if that option is used) for all batches and epochs. If a test file or files is provided, a CSV containing the per-token surprisal for each sentence in each test dataset will be output, with the default name being the model name (with "/" replaced with "-") + `.lm_results.csv.gz` as the default name. The prefix can be changed by setting `--test_output_file_prefix`.

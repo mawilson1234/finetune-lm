@@ -10,5 +10,9 @@ dependencies:
   - transformers
   - optuna
   - seaborn
+  - PyPDF2
+  - plotly
+  - scikit-learn
   - pip:
       - sball
+      - kaleido
