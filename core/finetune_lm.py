@@ -925,6 +925,12 @@ def finetune_lm(
 		else:
 			basename = data_args.test_output_file_prefix
 		
+		# this happens if we're just running test files on
+		# a huggingface model directly, and not on one we've
+		# fine-tuned
+		if not os.path.isdir(data_args.output_dir):
+			os.makedirs(data_args.output_dir, exist_ok=True)
+		
 		test_results.to_csv(
 			os.path.join(
 				data_args.output_dir,
