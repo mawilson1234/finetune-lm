@@ -26,6 +26,7 @@ python core/finetune_lm.py \
 	--use_kl_baseline_loss \
 	--kl_dataset datamaker/datasets/miniboki-2022-04-01_22-58-30/miniboki \
 	--do_optimize \
+	--max_trials 150 \
 	--optimize_kwargs.n_trials 150 \
 	--study_kwargs.sampler optuna.samplers.TPESampler \
 	--study_kwargs.sampler_kwargs __delete_field__ \
