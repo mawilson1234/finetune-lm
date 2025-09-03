@@ -730,7 +730,7 @@ def extract_surprisals(
 				model=model,
 				tokenizer=tokenizer,
 				inputs=inputs,
-				input_texts=input_texts,
+				input_texts=batch_texts,
 				batch_outputs=batch_outputs,
 				input_nums=input_nums,
 				batch_metadata=batch_metadata,
