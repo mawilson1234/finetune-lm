@@ -981,9 +981,9 @@ def optimize_finetune_lm(
 			if files:
 				with PdfMerger() as merger:
 					for file in files:
-						merger.append(pdf)
+						merger.append(file)
 					
-					merger.write(os.path.join(data_args.output_dir, 'optimization_plots.pdf'))			
+					merger.write(os.path.join(data_args.output_dir, 'optimization_plots.pdf'))
 	
 	if not optim_args.do_optimize:
 		logger.warning(
