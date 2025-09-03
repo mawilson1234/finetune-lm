@@ -19,12 +19,12 @@ python core/finetune_lm.py \
 	--model_name_or_path gpt2 \
 	--use_gpu \
 	--train_file "'data/crined_transitive_SVO-OSV_dr_for_human_exp/crined_transitive_SVO-OSV_dr_for_human_exp.txt.gz'" \
-	--validation_file "'data/crined_passive_SVO-OSV_dr_for_human_exp/crined_passive_SVO-OSV_dr_for_human_exp.txt.gz'" \ 
+	--validation_file "'data/crined_passive_SVO-OSV_dr_for_human_exp/crined_passive_SVO-OSV_dr_for_human_exp.txt.gz'" \
 	--test_file "'data/syn_crined_ext_dr_for_human_exp/syn_crined_ext_dr_for_human_exp.txt.gz'" "'data/combined_fillers_for_human_exp/combined_fillers_for_human_exp.txt.gz'" \
 	--patience 30 \
 	--epochs 5000 \
 	--min_epochs 100 \
 	--use_kl_baseline_loss \
 	--kl_dataset datamaker/datasets/miniboki-2022-04-01_22-58-30/miniboki \
-	--kl_scaleby 1.1199387967659338 \
-	--lr 6e-5
+	--kl_scaleby 2 \
+	--lr 4.775165620167018e-05
