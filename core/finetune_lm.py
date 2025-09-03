@@ -572,7 +572,7 @@ def finetune_model(
 							tokenizer=tokenizer,
 							inputs=inputs,
 							input_nums=input_nums,
-							input_texts=validation_texts,
+							input_texts=input_texts,
 							batch_outputs=outputs,
 							batch_metadata=batch_metadata,
 							epoch=epoch,
