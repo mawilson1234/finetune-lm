@@ -972,8 +972,11 @@ def optimize_finetune_lm(
 		# find all the available visualization functions in optuna currently.
 		# we'll try each of them and then only keep the ones that don't error
 		# due to the current study structure.
-		viz_functions = [v for _, v in vars(optuna.visualization).items() if isinstance(v, types.FunctionType)]
-
+		viz_functions = [(k, v) for k, v in vars(optuna.visualization).items() if isinstance(v, types.FunctionType)]
+		# sort to keep the order consistent
+		viz_functions = sorted(viz_functions, key=lambda t: t[0])
+		viz_functions = [v for _, v in viz_functions]
+		
 		# if we don't do this, we get a ton of log messages we don't want
 		logging.getLogger('kaleido').setLevel(logging.WARNING)
 		logging.getLogger('choreographer').setLevel(logging.WARNING)
