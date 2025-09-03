@@ -1013,7 +1013,7 @@ def optimize_finetune_lm(
 		if optim_args.max_trials is not None:
 			optim_args.optimize_kwargs['callbacks'] = (
 				optim_args.optimize_kwargs.get('callbacks', []) + 
-				[optuna.study.MaxTrialsCallback(optim_args.max_trials)]
+				[optuna.study.MaxTrialsCallback(n_trials=optim_args.max_trials, states=None)]
 			)
 		
 		optim_args.study.optimize(
@@ -1031,7 +1031,7 @@ def optimize_finetune_lm(
 	logger.info(f'Best result: {optim_args.study.best_value}')
 	save_optimization_results(study=optim_args.study)
 	
-	return study
+	return optim_args.study
 
 if __name__ == '__main__':
 	model_args, data_args, optim_args = parse_arguments(ModelArguments, DataTrainingArguments, OptimizationArguments)
