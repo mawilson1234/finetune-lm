@@ -1042,7 +1042,7 @@ def optimize_finetune_lm(
 			# we need to wrap finetune_lm in this function since optuna
 			# doesn't support passing additional arguments to the optimized function,
 			# and it will only pass the trial object as a positional argument in the
-			# first slot. In general, we don't want to required using only kwargs in
+			# first slot. In general, we don't want to require using only kwargs in
 			# in the `finetune_lm` function when we're not running a trial, so this is 
 			# how we get around that
 			lambda trial: finetune_lm(model_args=model_args, data_args=data_args, optim_args=optim_args, trial=trial), 
