@@ -22,7 +22,7 @@ python core/finetune_lm.py \
 	--validation_file "'data/crined_passive_SVO-OSV_wr_for_human_exp/crined_passive_SVO-OSV_wr_for_human_exp.txt.gz'" \
 	--test_file "'data/syn_crined_SVO-OSV_wr_for_human_exp/syn_crined_SVO-OSV_wr_for_human_exp.txt.gz'" "'data/combined_fillers_for_human_exp/combined_fillers_for_human_exp.txt.gz'" \
 	--patience 30 \
-	--epochs 5000 \
+	--epochs 1000 \
 	--min_epochs 100 \
 	--use_kl_baseline_loss \
 	--kl_dataset datamaker/datasets/miniboki-2022-04-01_22-58-30/miniboki \

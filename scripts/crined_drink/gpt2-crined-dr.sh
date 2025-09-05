@@ -26,5 +26,5 @@ python core/finetune_lm.py \
 	--min_epochs 100 \
 	--use_kl_baseline_loss \
 	--kl_dataset "'data/miniboki_train/miniboki_train.txt.gz'" \
-	--kl_scaleby 2 \
-	--lr 4.775165620167018e-05
+	--kl_scaleby 1 \
+	--lr 5e-05
