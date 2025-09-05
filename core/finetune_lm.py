@@ -981,7 +981,15 @@ def optimize_finetune_lm(
 		# find all the available visualization functions in optuna currently.
 		# we'll try each of them and then only keep the ones that don't error
 		# due to the current study structure.
-		viz_functions = [v for _, v in vars(optuna.visualization).items() if isinstance(v, types.FunctionType)]
+		viz_functions = [(k, v) for k, v in vars(optuna.visualization).items() if isinstance(v, types.FunctionType)]
+		# sort to keep the order consistent
+		viz_functions = sorted(viz_functions, key=lambda t: t[0])
+		viz_functions = [v for _, v in viz_functions]
+		
+		# if we don't do this, we get a ton of log messages we don't want
+		logging.getLogger('kaleido').setLevel(logging.WARNING)
+		logging.getLogger('choreographer').setLevel(logging.WARNING)
+		
 		# plotly can only save a single file to a pdf. So we'll save them in a
 		# temporary directory, and then merge them into the output dir.
 		with tempfile.TemporaryDirectory(dir=data_args.output_dir) as tempdir:
@@ -998,7 +1006,12 @@ def optimize_finetune_lm(
 					for file in files:
 						merger.append(file)
 					
-					merger.write(os.path.join(data_args.output_dir, 'optimization_plots.pdf'))
+					# if we're running multiple processes, we don't want them stepping on each other's
+					# toes here, so handle the potential file exists issue gracefully
+					try:
+						merger.write(os.path.join(data_args.output_dir, 'optimization_plots.pdf'))
+					except Exception:
+						pass
 	
 	if not optim_args.do_optimize:
 		logger.warning(
@@ -1022,7 +1035,7 @@ def optimize_finetune_lm(
 		if optim_args.max_trials is not None:
 			optim_args.optimize_kwargs['callbacks'] = (
 				optim_args.optimize_kwargs.get('callbacks', []) + 
-				[optuna.study.MaxTrialsCallback(optim_args.max_trials)]
+				[optuna.study.MaxTrialsCallback(n_trials=optim_args.max_trials, states=None)]
 			)
 		
 		optim_args.study.optimize(
