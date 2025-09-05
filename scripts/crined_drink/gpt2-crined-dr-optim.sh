@@ -24,7 +24,7 @@ python core/finetune_lm.py \
 	--epochs 5000 \
 	--min_epochs 100 \
 	--use_kl_baseline_loss \
-	--kl_dataset datamaker/datasets/miniboki-2022-04-01_22-58-30/miniboki \
+	--kl_dataset "'data/miniboki_train/miniboki_train.txt.gz'" \
 	--do_optimize \
 	--max_trials 150 \
 	--optimize_kwargs.n_trials 150 \

@@ -202,7 +202,18 @@ class OptimizationArguments:
 		Sets suggested values in data_args for the trial.
 		'''
 		for k, v in self.params.items():
-			if not (isinstance(getattr(data_args, k), int) or isinstance(getattr(data_args, k), float)):
+			if (
+				# the hyperparameter isn't an int or float
+				not (
+					(isinstance(getattr(data_args, k), int) or isinstance(getattr(data_args, k), float))
+				) and
+				# it's also not a list of ints or floats
+				not any(
+					(isinstance(v2, int) or isinstance(v2, float) for v2 in getattr(data_args, k))
+				)
+				# or we specifically said want to treat it as categorical
+				or v.get('type') == 'categorical'
+			):
 				setattr(data_args, k, trial.suggest_categorical(k, v['values']))
 			else:
 				if len(v['values']) != 2:
@@ -225,10 +236,29 @@ class OptimizationArguments:
 			# we allow setting a 'type' entry in the value dict to
 			# override behavior depending on whether the default
 			# value for the hyperparamater is an int or a float
-			if isinstance(getattr(data_args, k), int) or v.get('type') == 'int':
+			if (isinstance(getattr(data_args, k), int) or v.get('type') == 'int') and not isinstance(getattr(data_args, k), list):
 				setattr(data_args, k, trial.suggest_int(**suggest_kwargs))
-			elif isinstance(getattr(data_args, k), float) or v.get('type') == 'float':
+			elif isinstance(getattr(data_args, k), float) or v.get('type') == 'float' and not isinstance(getattr(data_args, k), list):
 				setattr(data_args, k, trial.suggest_float(**suggest_kwargs))
+			# deal with optimizing parameters for lists of values
+			elif isinstance(getattr(data_args, k), list):
+				if all(isinstance(v2, int) for v2 in getattr(data_args, k)) or v.get('type') == 'int':
+					l = []
+					for i, v2 in enumerate(getattr(data_args, k)):
+						suggest_kwargs_i = {**suggest_kwargs, 'name': f'{k}_{i}'}
+						l.append(trial.suggest_int(**suggest_kwargs_i))
+					setattr(data_args, k, l)
+				elif all(isinstance(v2, float) for v2 in getattr(data_args, k)) or v.get('type') == 'float':
+					l = []
+					for i, v2 in enumerate(getattr(data_args, k)):
+						suggest_kwargs_i = {**suggest_kwargs, 'name': f'{k}_{i}'}
+						l.append(trial.suggest_float(**suggest_kwargs_i))
+					setattr(data_args, k, l)
+				else:
+					raise ValueError(
+						f'Can only optimize parameters of type "categorical", "int", and "float", '
+						f'but a list with {[type(v2) for v2 in getattr(data_args, k)]!r} was provided.'
+					)
 			else:
 				raise ValueError(
 					f'Can only optimize parameters of type "categorical", "int", and "float", '

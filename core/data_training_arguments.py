@@ -1,6 +1,6 @@
 import os
 
-from typing import Optional
+from typing import Optional, Union
 from datetime import datetime
 from dataclasses import field
 from dataclasses import dataclass
@@ -147,10 +147,10 @@ class DataTrainingArguments:
 		}
 	)
 	
-	kl_dataset: Optional[str] = field(
+	kl_dataset: Optional[Union[str,list[str]]] = field(
 		default=None,
 		metadata={
-			"help": "If using the KL baseline loss term, the path to the dataset used to compute it."
+			"help": "If using the KL baseline loss term, the path to the dataset(s) used to compute it."
 		}
 	)
 	
@@ -161,28 +161,28 @@ class DataTrainingArguments:
 		}
 	)
 	
-	kl_n_examples_per_batch: Optional[int] = field(
+	kl_n_examples_per_batch: Optional[Union[int,list[int]]] = field(
 		default=20,
 		metadata={
 			"help": "If using the KL baseline loss term, how many examples to use per weight update "
 			"to compute it. Keeping this smaller is generally better even if using GPU, since otherwise "
-			"a lot of time is wasted computing outputs for pad tokens."
+			"a lot of time is wasted computing outputs for pad tokens. If a list, one number per dataset."
 		}
 	)
 	
-	kl_scaleby: Optional[float] = field(
+	kl_scaleby: Optional[Union[float,list[float]]] = field(
 		default=250,
 		metadata={
 			"help": "If using the KL baseline loss term, how much to scale it by. "
 			"Note that the value returned for the KL baseline loss term is the average "
-			"KL divergence per token."
+			"KL divergence per token. If a list, one number per dataset."
 		}
 	)
 	
 	kl_max_samples: Optional[int] = field(
 		default=None,
 		metadata={
-			"help": "For debugging purposes or quicker training, truncate the number of total examples in the "
+			"help": "For debugging purposes or quicker training, truncate the number of total examples in each "
 			"KL baseline loss term dataset to this value if set."
 		},
 	)
@@ -264,7 +264,7 @@ class DataTrainingArguments:
 		
 		if self.min_epochs > self.epochs:
 			raise ValueError(
-				f'`min_epochs` {min_epochs} cannot be greater than `epochs` {epochs}.'
+				f'`min_epochs` {self.min_epochs} cannot be greater than `epochs` {self.epochs}.'
 			)
 		
 		if self.output_dir is not None and self.train_file:

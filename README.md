@@ -60,10 +60,10 @@ The `DataTrainingArguments` dataclass accepts the following parameters:
 - `patience`: the number of epochs to continue training without observing improved performance on the validation dataset. default is `None` (no early stopping)
 - `delta`: the minimum amount of improvement on loss that resets the patience counter. Default is `0` (any improvement resets the patience counter)
 - `use_kl_baseline_loss`: whether to add a loss term based on the KL divergence between the model being fine-tuned on the original version of that model. Used to help avoid overfitting to the fine-tuning dataset. Default is `False`
-- `kl_dataset`: the path to the dataset used to compute the KL divergence loss term. Currently, this should be point to a directory containing the dataset in `.arrow` format. This may change later to be more consistent with other dataset formats. Default is `None`
+- `kl_dataset`: the path(s) to the dataset(s) used to compute the KL divergence loss term. Default is `None`
 - `kl_batch_size`: default is `32`
-- `kl_n_examples_per_step`: how many examples from `kl_dataset` to use per weight update/batch to compute the KL divergence loss term. Default is `20`
-- `kl_scaleby`: a multiplier for the KL divergence loss term. Default is `2.5`
+- `kl_n_examples_per_step`: how many examples from `kl_dataset` to use per weight update/batch to compute the KL divergence loss term. Can be a single `int`, or a list of `int`s for each `kl_dataset`. Default is `20`
+- `kl_scaleby`: a multiplier for the KL divergence loss term, or a list of these multipliers for each `kl_dataset`. Default is `2.5`
 - `kl_max_samples`: default is `None` (all samples may be used)
 - `kl_reduction`: default is `'none'`. It is recommended you don't modify this.
 - `output_dir`: Used to store the output directory name. This will be determined automatically.
@@ -114,6 +114,8 @@ The `OptimizationArguments` dataclass accepts the following parameters:
 	}
 	```
 	Any keyword arguments provided in `suggest_kwargs` for a particular parameter are passed to the `suggest_` function of the Optuna `trial` object. The default behavior is to suggest a value of the same type as the default value for the hyperparameter specified in `DataTrainingArguments`. However, if a `type` is provided for a hyperparameter's dictionary, and the argument provided has a default value that is either `float` or `int`, the `type` key can map to one of `"float"` or `"int"` to override the default behavior. (Non-numeric defaults can only be suggested as categorical values.) For instance, if the default value of the hyperparameter `lr` is set to `1` (for argument's sake), the default behavior would be to suggest an integer value when optimizing `lr`. However, if `--params.lr.type float` is set, a float in the range specified by `params.lr.values` will be suggested instead.
+
+Currently, to optimize the hyperparameters `kl_scaleby` and/or `kl_n_examples_per_batch` differently across multiple `kl_dataset`s, you must pass a list for each with as many values as there are `kl_dataset`s. The values in this list don't matter during optimization, as they will be overwritten with suggested values. If a list is not passed for these, a single value will be used for all datasets, and that will be the value optimized for.
 
 ## Passing command line arguments
 

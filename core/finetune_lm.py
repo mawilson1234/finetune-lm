@@ -429,18 +429,26 @@ def finetune_model(
 		fig.savefig(os.path.join(output_dir, 'loss_curves.pdf'))
 	
 	if data_args.use_kl_baseline_loss:
-		kl_baseline_dataset = DatasetDict.load_from_disk(data_args.kl_dataset)
-		kl_baseline_dataset = preprocess_dataset(
-			dataset=kl_baseline_dataset,
-			data_args=data_args,
-			tokenizer=tokenizer,
-			max_samples=data_args.kl_max_samples,
-			split='train'
-		)
+		kl_baseline_datasets = data_args.kl_dataset
+		if isinstance(data_args.kl_dataset, str):
+			kl_baseline_datasets = [kl_baseline_datasets]
+		
+		kl_baseline_datasets = [
+			load_dataset('text', data_files={'train': file}) for file in kl_baseline_datasets
+		]
+		kl_baseline_datasets = [
+			preprocess_dataset(
+				dataset=dataset,
+				data_args=data_args,
+				tokenizer=tokenizer,
+				max_samples=data_args.kl_max_samples,
+				split='train'
+			) for dataset in kl_baseline_datasets
+		]
 		KL_baseline_loss = KLBaselineLoss(
 			model=model, 
 			tokenizer=tokenizer, 
-			dataset=kl_baseline_dataset,
+			dataset=kl_baseline_datasets,
 			batch_size=data_args.kl_batch_size,
 			scaleby=data_args.kl_scaleby,
 			n_examples_per_batch=data_args.kl_n_examples_per_batch,
@@ -940,6 +948,7 @@ def finetune_lm(
 			na_rep='NA',
 		)
 	
+	logger.info('All tasks complete.')
 	if data_args.train_file:
 		return best_dev_loss
 
@@ -1031,7 +1040,7 @@ def optimize_finetune_lm(
 	logger.info(f'Best result: {optim_args.study.best_value}')
 	save_optimization_results(study=optim_args.study)
 	
-	return study
+	return optim_args.study
 
 if __name__ == '__main__':
 	model_args, data_args, optim_args = parse_arguments(ModelArguments, DataTrainingArguments, OptimizationArguments)
