@@ -997,7 +997,12 @@ def optimize_finetune_lm(
 					for file in files:
 						merger.append(file)
 					
-					merger.write(os.path.join(data_args.output_dir, 'optimization_plots.pdf'))
+					# if we're running multiple processes, we don't want them stepping on each other's
+					# toes here, so handle the potential file exists issue gracefully
+					try:
+						merger.write(os.path.join(data_args.output_dir, 'optimization_plots.pdf'))
+					except Exception:
+						pass
 	
 	if not optim_args.do_optimize:
 		logger.warning(
