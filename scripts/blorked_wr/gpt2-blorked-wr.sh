@@ -20,11 +20,11 @@ python core/finetune_lm.py \
 	--use_gpu \
 	--train_file "'data/blorked_transitive_SVO-OSV_wr_for_human_exp/blorked_transitive_SVO-OSV_wr_for_human_exp.txt.gz'" \
 	--validation_file "'data/blorked_passive_SVO-OSV_wr_for_human_exp/blorked_passive_SVO-OSV_wr_for_human_exp.txt.gz'" \
-	--test_file "'data/syn_blorked_ext_wr_for_human_exp/syn_blorked_ext_wr_for_human_exp.txt.gz'" "'data/combined_fillers_for_human_exp/combined_fillers_for_human_exp.txt.gz'" \
+	--test_file "'data/syn_blorked_SVO-OSV_wr_for_human_exp/syn_blorked_SVO-OSV_wr_for_human_exp.txt.gz'" "'data/combined_fillers_for_human_exp/combined_fillers_for_human_exp.txt.gz'" \
 	--patience 30 \
 	--epochs 1000 \
 	--min_epochs 100 \
 	--use_kl_baseline_loss \
-	--kl_dataset datamaker/datasets/miniboki-2022-04-01_22-58-30/miniboki \
-	--kl_scaleby 1.1199387967659338 \
-	--lr 6e-5
+	--kl_dataset "'data/miniboki_train/miniboki_train.txt.gz'" \
+	--kl_scaleby 1 \
+	--lr 5e-05

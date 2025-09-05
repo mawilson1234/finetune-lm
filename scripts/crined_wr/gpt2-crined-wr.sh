@@ -12,7 +12,7 @@ module load miniconda
 
 source activate finetune-lm
 
-echo "Running script scripts/crined_wrink/gpt2-crined-wr.sh"
+echo "Running script scripts/crined_wr/gpt2-crined-wr.sh"
 echo ""
 
 python core/finetune_lm.py \
@@ -25,6 +25,6 @@ python core/finetune_lm.py \
 	--epochs 1000 \
 	--min_epochs 100 \
 	--use_kl_baseline_loss \
-	--kl_dataset datamaker/datasets/miniboki-2022-04-01_22-58-30/miniboki \
-	--kl_scaleby 2 \
-	--lr 4.775165620167018e-05
+	--kl_dataset "'data/miniboki_train/miniboki_train.txt.gz'" \
+	--kl_scaleby 1 \
+	--lr 5e-05
