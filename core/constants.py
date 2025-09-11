@@ -85,11 +85,47 @@ MAMBA_MODELS: set[str] = (
 	}
 )
 
+PYTHIA_MODELS: set[str] = (
+	{f'EleutherAi/pythia-{i}' for s in [
+			{'14m'} |
+			{f'{j}m{k}' for j in [70, 160, 410]} |
+			{f'{j}b{k}' for j in [1, 1.4, 2.8, 6.9, 12]}
+			for k in {'', '-deduped'}
+		] for i in s
+	}
+)
+
+OLMO_MODELS: set[str] = (
+	f'allenai/OLMo-{i}' for i in {
+		'1B', '1B-hf', '1B-0724-hf',
+		'7B', '7B-hf', '7B-0424', 
+		'7B-0424-hf', '7B-0724-hf', 
+		'7B-Twin-2T', '7B-Twin-2T-hf',
+	}
+)
+
+OLMO_2_MODELS: set[str] = (
+	f'allenai/OLMo-2-{i}' for i in {
+		'0425-1B', '1124-7B', '1124-13B', 
+		'0325-32B', 
+	}	
+)
+
+GPT_BERT_MODELS: set[str] = (
+	f'ltg/gpt-bert-babylm-{s}' for s in {
+		'small', 'base',
+	}
+)
+
 NEXT_WORD_MODELS: set[str] = (
 	OPT_MODELS |
 	GPT2_MODELS |
 	LLAMA_MODELS |
-	MAMBA_MODELS
+	MAMBA_MODELS |
+	PYTHIA_MODELS |
+	OLMO_MODELS |
+	OLMO_2_MODELS | 
+	GPT_BERT_MODELS
 )
 
 HF_AUTH_REQUIRED_MODELS: set[str] = (
@@ -115,7 +151,7 @@ MASKED_LANGUAGE_MODELS: set[str] = (
 			for version in 
 			{'v1', 'v2'}
 	} |
-	# these models do not currently work (04/2023)
+	# these models do not work (04/2023)
 	# see https://github.com/huggingface/transformers/pull/18674
 	# {
 	#	f'microsoft/deberta-v3-{size}'
@@ -154,6 +190,10 @@ MASKED_LANGUAGE_MODELS: set[str] = (
 	{
 		f'yanaiela/roberta-base-epoch_{n}'
 		for n in range(84)
+	} |
+	{
+		f'ltg/ltg-bert-{c}' 
+		for c in {'bnc', 'babylm'}
 	}
 )
 
