@@ -3,7 +3,9 @@ import torch
 import logging
 logger = logging.getLogger(__name__)
 
-from typing import Optional
+import model_modifiers
+
+from typing import Optional, Any, Callable
 if __name__ == '__main__':
 	from .constants import *
 else:
@@ -65,6 +67,38 @@ class ModelArguments:
 		}
 	)
 	
+	model_modifier_fns: Optional[list[Callable]] = field(
+		default_factory=lambda: [],
+		metadata={
+			"help": "A list of functions to apply to the model and tokenizer before fine-tuning/testing."
+		}
+	)
+	
+	model_modifier_fn_kwargs: Optional[dict[str,Any]] = field(
+		default_factory=lambda: {},
+		metadata={
+			"help": "A dict of kwargs to apply to the model modifier functions. Keys should be the name "
+			"of the function to which the corresponding kwargs should be passed."
+		}
+	)
+	
+	model_pre_train_step_callbacks: Optional[list] = field(
+		default_factory=lambda: [],
+		metadata={
+			"help": "Callbacks, implemented as classes that take the model + kwargs when "
+			"initialized and implement a __call__ function. To be run in sequence before "
+			"`optimizer.step()` following each training step."
+		}
+	)
+	
+	model_pre_train_step_callbacks_kwargs: Optional[dict] = field(
+		default_factory=lambda: {},
+		metadata={
+			"help": "Kwargs, besides the model, to be passed to the model_train_step_callback "
+			"initializer of the corresponding name."
+		},
+	)
+	
 	def __post_init__(self):
 		self.config_name = self.config_name or self.model_name_or_path
 		self.tokenizer_name = self.tokenizer_name or self.model_name_or_path
@@ -96,8 +130,9 @@ class ModelArguments:
 				self.model_task = 'Seq2Seq'
 			else:
 				raise ValueError(
-					'`--model_task`, when provided, must be one of `lm`, `mlm`, or `seq2seq` (case insensitive), '
-					f'but {self.model_task} was provided instead!'
+					'`--model_task`, when provided, must be one of `lm`, `mlm`, or '
+					f'`seq2seq` (case insensitive), but {self.model_task} was provided '
+					'instead!'
 				)
 			
 			set_model_task(model_name_or_path=self.model_name_or_path, model_task=self.model_task)

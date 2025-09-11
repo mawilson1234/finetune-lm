@@ -72,7 +72,7 @@ class OptimizationArguments:
 			'lr': {
 				'values': [2e-6, 2e-5],
 				'suggest_kwargs': {},
-			}
+			},
 		},
 		metadata={
 			"help": "A dictionary specifying which parameters to optimize, and how to optimize them. "

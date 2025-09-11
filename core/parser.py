@@ -1,4 +1,6 @@
+import re
 import sys
+import json
 import dataclasses
 
 from typing import (
@@ -6,6 +8,21 @@ from typing import (
 	get_origin, get_args
 )
 from collections.abc import MutableMapping
+
+def import_class_from_string(path: str) -> Any:
+	# from Pat @ https://stackoverflow.com/questions/452969/does-python-have-an-equivalent-to-java-class-forname
+	from importlib import import_module
+	module_path, _, class_name = path.rpartition('.')
+	
+	# this handles cases with dots
+	if module_path != '':
+		mod = import_module(module_path)
+		klass = getattr(mod, class_name)
+		return klass
+	
+	# this handles cases without dots
+	mod = import_module(class_name)
+	return mod
 
 def parse_args() -> dict[str,Any]:
 	'''
@@ -70,21 +87,6 @@ def parse_args() -> dict[str,Any]:
 		If it doesn't, and it has no dots in its name, it is returned (unchanged) as a 
 		string.
 		'''
-		def import_class_from_string(path: str) -> Any:
-			# from Pat @ https://stackoverflow.com/questions/452969/does-python-have-an-equivalent-to-java-class-forname
-			from importlib import import_module
-			module_path, _, class_name = path.rpartition('.')
-			
-			# this handles cases with dots
-			if module_path != '':
-				mod = import_module(module_path)
-				klass = getattr(mod, class_name)
-				return klass
-			
-			# this handles cases without dots
-			mod = import_module(class_name)
-			return mod
-		
 		def is_quoted(s: str) -> bool:
 			'''Returns True if the passed string starts and ends with the same quotation marks.'''
 			if s.startswith("'") and s.endswith("'"):
@@ -125,15 +127,21 @@ def parse_args() -> dict[str,Any]:
 			pass
 		
 		if s.startswith('import:'):
-			s = s.lstrip('import:')
+			s = re.sub(r'^import:', '', s)
 			return import_class_from_string(s)
 		
 		if '.' in s and not is_quoted(s):
 			return import_class_from_string(s)
 		
 		if s.startswith('callable:'):
-			s = s.lstrip('callable:')
+			s = re.sub('^callable:', '', s)
 			return globals()[s]
+		
+		# allows passing a list of dicts as a string
+		# not elegant but I can't think of a better way.
+		if s.startswith('json:'):
+			s = re.sub('^json:', '', s)
+			return json.loads(s)
 		
 		# remove leading and trailing quotes
 		if is_quoted(s):
@@ -170,7 +178,7 @@ def parse_args() -> dict[str,Any]:
 	args_dict = {}
 	for arg_list in args_nested:
 		# strip off the argument identifier from the beginning
-		name = arg_list[0].lstrip('--')
+		name = re.sub('^--', '', arg_list[0])
 		arg_values = arg_list[1:]
 		
 		if len(arg_values) == 1:
@@ -242,7 +250,7 @@ def parse_args_into_dataclasses(*args) -> tuple:
 		if len(args) != 2:
 			return False
 		
-		if type(None) in args and dict in args:
+		if type(None) in args and dict in [get_origin(a) for a in args]:
 			return True
 		
 		return False
@@ -327,4 +335,5 @@ def parse_args_into_dataclasses(*args) -> tuple:
 		dataklass_return.append(parsed_args)
 	
 	dataklass_return = tuple(dataklass_return)
+	
 	return dataklass_return

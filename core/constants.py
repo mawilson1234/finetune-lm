@@ -1,3 +1,10 @@
+from transformers import (
+	AutoModelForCausalLM,
+	AutoModelForMaskedLM,
+	AutoModelForSeq2SeqLM,
+	AutoTokenizer,
+)
+
 GPT2_MODELS: set[str] = (
 	{'gpt2'} |
 	{f'gpt2-{s}' 
@@ -282,3 +289,59 @@ def model_not_supported_message(model_name_or_path: str) -> str:
 		'should be evaluated using a language modeling task. (Encoding-decoder models '
 		'beside T5 models are not currently supported.)'
 	)
+
+
+def load_model(model_name_or_path: str, *args, **kwargs) -> 'AutoModel':
+	'''
+	Loads the model using the appropriate function.
+	'''
+	if model_name_or_path in NEXT_WORD_MODELS:
+		model = AutoModelForCausalLM.from_pretrained(
+			model_name_or_path, *args, **kwargs
+		)
+		# store any kwargs in the model so
+		# we can pass them to the KL baseline loss later
+		setattr(model, 'model_kwargs', kwargs)
+		if model_name_or_path in GPT2_MODELS:
+			model.config.pad_token_id = model.config.eos_token_id
+			model.config.bos_token_id = model.config.eos_token_id
+		
+		return model
+	
+	if model_name_or_path in MASKED_LANGUAGE_MODELS:
+		model = AutoModelForMaskedLM.from_pretrained(
+			model_name_or_path, *args, **kwargs
+		)
+		setattr(model, 'model_kwargs', kwargs)
+		return model
+	
+	if model_name_or_path in SEQ2SEQ_MODELS:
+		model = AutoModelForSeq2SeqLM.from_pretrained(
+			model_name_or_path, *args, **kwargs
+		)
+		setattr(model, 'model_kwargs', kwargs)
+		return model
+	
+	raise ValueError(model_not_supported_message(model_name_or_path))
+
+def load_tokenizer(tokenizer_name_or_path: str, *args, **kwargs) -> AutoTokenizer:
+	'''
+	Loads a tokenizer and adds pad token if needed.
+	'''
+	tokenizer = AutoTokenizer.from_pretrained(
+		tokenizer_name_or_path,
+		*args, **kwargs
+	)
+	# store the tokenizer kwargs for use later
+	setattr(tokenizer, 'tokenizer_kwargs', kwargs)
+	
+	if tokenizer.name_or_path in HF_LLAMA_MODELS:
+		tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+	
+	if tokenizer_name_or_path in GPT2_MODELS:
+		tokenizer.pad_token = tokenizer.eos_token
+		tokenizer.pad_token_id = tokenizer.eos_token_id
+		tokenizer.bos_token = tokenizer.eos_token
+		tokenizer.bos_token_id = tokenizer.eos_token_id
+	
+	return tokenizer

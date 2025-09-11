@@ -24,7 +24,8 @@ python core/finetune_lm.py \
 	--patience 30 \
 	--epochs 5000 \
 	--min_epochs 100 \
-	--use_kl_baseline_loss \
-	--kl_dataset "'data/miniboki_train/miniboki_train.txt.gz'" \
-	--kl_scaleby 1 \
-	--lr 5e-05
+	--loss_classes.train loss_classes.OutputsDefaultLoss \
+						 loss_classes.KLBaselineLoss \
+	--loss_classes_kwargs.train.KLBaselineLoss.dataset "'data/miniboki_train/miniboki_train.txt.gz'" \
+	--loss_classes_kwargs.train.KLBaselineLoss.scaleby 1 \
+	--train_optimizer_kwargs.lr 5e-05
