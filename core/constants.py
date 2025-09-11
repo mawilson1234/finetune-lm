@@ -86,34 +86,37 @@ MAMBA_MODELS: set[str] = (
 )
 
 PYTHIA_MODELS: set[str] = (
-	{f'EleutherAi/pythia-{i}' for s in [
-			{'14m'} |
-			{f'{j}m{k}' for j in [70, 160, 410]} |
-			{f'{j}b{k}' for j in [1, 1.4, 2.8, 6.9, 12]}
-			for k in {'', '-deduped'}
-		] for i in s
+	{f'EleutherAi/pythia-{size}' 
+		for size in {'14m'} | {
+			name for duped in {'', '-deduped'} for name in 
+			{f'{size}m{duped}' for size in [70, 160, 410]} | 
+			{f'{size}b{duped}' for size in [1, 1.4, 2.8, 6.9, 12]}
+		}
 	}
 )
 
 OLMO_MODELS: set[str] = (
-	f'allenai/OLMo-{i}' for i in {
-		'1B', '1B-hf', '1B-0724-hf',
-		'7B', '7B-hf', '7B-0424', 
-		'7B-0424-hf', '7B-0724-hf', 
-		'7B-Twin-2T', '7B-Twin-2T-hf',
+	{f'allenai/OLMo-{i}' for i in {
+			'1B', '1B-hf', '1B-0724-hf',
+			'7B', '7B-hf', '7B-0424', 
+			'7B-0424-hf', '7B-0724-hf', 
+			'7B-Twin-2T', '7B-Twin-2T-hf',
+		}
 	}
 )
 
 OLMO_2_MODELS: set[str] = (
-	f'allenai/OLMo-2-{i}' for i in {
-		'0425-1B', '1124-7B', '1124-13B', 
-		'0325-32B', 
-	}	
+	{f'allenai/OLMo-2-{i}' for i in {
+			'0425-1B', '1124-7B', '1124-13B', 
+			'0325-32B', 
+		}
+	}
 )
 
 GPT_BERT_MODELS: set[str] = (
-	f'ltg/gpt-bert-babylm-{s}' for s in {
-		'small', 'base',
+	{f'ltg/gpt-bert-babylm-{s}' for s in {
+			'small', 'base',
+		}
 	}
 )
 
