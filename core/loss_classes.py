@@ -197,6 +197,7 @@ class KLBaselineLoss(KLDivLoss):
 		self.data_preprocessing_fn = data_preprocessing_fn
 		self.data_preprocessing_fn_kwargs = data_preprocessing_fn_kwargs
 		self.data_preprocessing_fn_strategy = data_preprocessing_fn_strategy if data_preprocessing_fn is not None else ''
+		self.return_all = return_all
 	
 	def forward(
 		self, 
