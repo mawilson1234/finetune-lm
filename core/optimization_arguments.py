@@ -86,6 +86,8 @@ class OptimizationArguments:
 	
 	def __post_init__(self):
 		if self.do_optimize:
+			self._set_study_name()
+			
 			# this lets us override defaults in dictionaries by passing an empty dictionary or string
 			# as the value
 			for d in vars(self):
@@ -93,8 +95,6 @@ class OptimizationArguments:
 					for p in d.copy():
 						if not d[p]:
 							del d[p]
-			
-			self._set_study_name()
 			
 			# used so that we can see the kwargs passed to object constructors
 			# for reproduceability

@@ -36,7 +36,7 @@ python core/finetune_lm.py \
 	--params.lr.suggest_kwargs.log \
 	--params.train_KLBaselineLoss_scaleby.values 1 5000 \
 	--params.train_KLBaselineLoss_scaleby.type int \
-	--params.train_KLBaselineloss_scaleby.suggest_kwargs.log \
+	--params.train_KLBaselineLoss_scaleby.suggest_kwargs.log \
 	--study_kwargs.storage optuna.storages.JournalStorage \
 	--study_kwargs.storage_kwargs.log_storage optuna.storages.journal.JournalFileBackend \
 	--study_kwargs.storage_kwargs.log_storage_kwargs.file_path "'./outputs/blorked_transitive_SVO-OSV_dr_for_human_exp/optuna_journal_storage.log'" \

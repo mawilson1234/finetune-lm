@@ -250,7 +250,7 @@ def parse_args_into_dataclasses(*args) -> tuple:
 		if len(args) != 2:
 			return False
 		
-		if type(None) in args and dict in [get_origin(a) for a in args]:
+		if type(None) in args and dict in args or dict in [get_origin(a) for a in args]:
 			return True
 		
 		return False
