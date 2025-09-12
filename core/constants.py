@@ -86,10 +86,10 @@ MAMBA_MODELS: set[str] = (
 )
 
 PYTHIA_MODELS: set[str] = (
-	{f'EleutherAi/pythia-{size}' 
+	{f'EleutherAI/pythia-{size}'
 		for size in {'14m'} | {
-			name for duped in {'', '-deduped'} for name in 
-			{f'{size}m{duped}' for size in [70, 160, 410]} | 
+			name for duped in {'', '-deduped'} for name in
+			{f'{size}m{duped}' for size in [70, 160, 410]} |
 			{f'{size}b{duped}' for size in [1, 1.4, 2.8, 6.9, 12]}
 		}
 	}
