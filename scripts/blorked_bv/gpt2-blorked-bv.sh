@@ -27,5 +27,5 @@ python core/finetune_lm.py \
 	--loss_classes.train loss_classes.OutputsDefaultLoss \
 						 loss_classes.KLBaselineLoss \
 	--loss_classes_kwargs.train.KLBaselineLoss.dataset "'data/miniboki_train/miniboki_train.txt.gz'" \
-	--loss_classes_kwargs.train.KLBaselineLoss.scaleby 1 \
-	--train_optimizer_kwargs.lr 5e-05
+	--loss_classes_kwargs.train.KLBaselineLoss.scaleby 8 \
+	--train_optimizer_kwargs.lr 1e-04

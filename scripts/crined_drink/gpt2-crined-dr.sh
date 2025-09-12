@@ -22,10 +22,10 @@ python core/finetune_lm.py \
 	--validation_file "'data/crined_passive_SVO-OSV_dr_for_human_exp/crined_passive_SVO-OSV_dr_for_human_exp.txt.gz'" \
 	--test_file "'data/syn_crined_ext_dr_for_human_exp/syn_crined_ext_dr_for_human_exp.txt.gz'" "'data/combined_fillers_for_human_exp/combined_fillers_for_human_exp.txt.gz'" \
 	--patience 30 \
-	--epochs 5000 \
+	--epochs 1000 \
 	--min_epochs 100 \
 	--loss_classes.train loss_classes.OutputsDefaultLoss \
 						 loss_classes.KLBaselineLoss \
 	--loss_classes_kwargs.train.KLBaselineLoss.dataset "'data/miniboki_train/miniboki_train.txt.gz'" \
-	--loss_classes_kwargs.train.KLBaselineLoss.scaleby 1 \
-	--train_optimizer_kwargs.lr 5e-05
+	--loss_classes_kwargs.train.KLBaselineLoss.scaleby 8 \
+	--train_optimizer_kwargs.lr 1e-04
