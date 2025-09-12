@@ -345,7 +345,7 @@ def load_model(model_name_or_path: str, *args, **kwargs) -> 'AutoModel':
 		# store any kwargs in the model so
 		# we can pass them to the KL baseline loss later
 		setattr(model, 'model_kwargs', kwargs)
-		if model_name_or_path in GPT2_MODELS:
+		if any(m == model_name_or_path for m in GPT2_MODELS | PYTHIA_MODELS):
 			model.config.pad_token_id = model.config.eos_token_id
 			model.config.bos_token_id = model.config.eos_token_id
 		
@@ -381,7 +381,7 @@ def load_tokenizer(tokenizer_name_or_path: str, *args, **kwargs) -> AutoTokenize
 	if tokenizer.name_or_path in HF_LLAMA_MODELS:
 		tokenizer.add_special_tokens({'pad_token': '[PAD]'})
 	
-	if tokenizer_name_or_path in GPT2_MODELS:
+	if any(t == tokenizer_name_or_path for t in GPT2_MODELS | PYTHIA_MODELS):
 		tokenizer.pad_token = tokenizer.eos_token
 		tokenizer.pad_token_id = tokenizer.eos_token_id
 		tokenizer.bos_token = tokenizer.eos_token
