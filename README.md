@@ -201,7 +201,7 @@ However, in order to facilitate setting other parameters, a custom argument pars
 
 For fine-tuning, the default output directory is `outputs/${train_file}/${model_name_or_path}/${year-month-day_hour_minute_second.nanoseconds}`.
 
-If you are running only testing, the default output directory is 'outputs/test_only/${model_name_or_path}'. This is because, in the general case, running a model on the same test dataset will return the same results, so there isn't typically a need to assign the model a unique id using a timestamp.
+If you are running only testing, the default output directory is `outputs/test_only/${model_name_or_path}`. This is because, in the general case, running a model on the same test dataset will return the same results, so there isn't typically a need to assign the model a unique id using a timestamp.
 
 In either case, any `/` in `model_name_or_path` will be replaced with `-`.
 
