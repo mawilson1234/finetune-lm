@@ -98,7 +98,7 @@ The `DataTrainingArguments` dataclass accepts the following parameters:
 
 ##### KLBaselineLoss
 
-The `KLBaselineLoss` class computes a loss term based on the Kullbeck-Leibler divergence between the predictions of the model being fine-tuned and the baseline model (the model with the same name or path). This helps address catastrophic forgetting. Its constructor accepts the following kwargs (which can be passed via `--loss_classes_kwargs.{dataset_type}.KLBaselineLoss.{kwarg_name} {kwarg_value}`).
+The `KLBaselineLoss` class computes a loss term based on the Kullbeck-Leibler divergence between the predictions of the model being fine-tuned and the baseline model (the model with the same name or path). This helps address catastrophic forgetting (see [Hawkins et al. 2020](https://aclanthology.org/2020.conll-1.33/) and [Wilson et al. 2023](https://direct.mit.edu/tacl/article/doi/10.1162/tacl_a_00608/118116/How-Abstract-Is-Linguistic-Generalization-in-Large). Its constructor accepts the following kwargs (which can be passed via `--loss_classes_kwargs.{dataset_type}.KLBaselineLoss.{kwarg_name} {kwarg_value}`).
 
 - `dataset`: the path(s) to the dataset(s) used to compute the KL divergence loss term. No default.
 - `batch_size`: default is `32`. Note that if you use a data preprocessing function with the `per_batch` strategy that changes the number of examples, this will be the batch size that is fed into the preprocessing function, and the actual number of examples run may be more or fewer.
