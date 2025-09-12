@@ -334,6 +334,8 @@ def finetune_model(
 			group['batch_number_prop'] = group['batch_number']/(max(group['batch_number']) + 1)
 			return group
 		
+		# so we don't accidentally modify anything in place
+		metrics = deepcopy(metrics)
 		metrics = (
 			metrics
 				.drop(
@@ -352,8 +354,8 @@ def finetune_model(
 				.apply(add_batch_number_prop)
 				.reset_index(drop=True)
 				.assign(
-					original_epoch = lambda df: df['epoch'],
-					epoch = lambda df: df['epoch'] + df['batch_number_prop']
+					original_epoch=lambda df: df['epoch'],
+					epoch=lambda df: df['epoch'] + df['batch_number_prop']
 				)
 		)
 		
@@ -362,14 +364,30 @@ def finetune_model(
 		
 		# if we have the kl_loss, subtract it from the regular loss
 		# for training to get the loss on just the training set
-		if 'kl_loss' in metrics.columns:
-			kl_loss = metrics.dropna(subset=['kl_loss']).reset_index(drop=True)
-			kl_loss.dataset_type = kl_loss.dataset_type + ' + KL loss'
+		metrics['loss_type'] = metrics.dataset_type.copy()
+		for c in [col for col in metrics.columns if col.endswith('Loss')]:
+			loss_col = metrics.dropna(subset=[c]).reset_index(drop=True)
+			# if there's only one loss value for a dataset type, then we don't 
+			# need to plot the individual losses separately.
+			for dataset in loss_col.dataset_type.unique():
+				# this is true if there's only one column for the dataset
+				# we're checking that has non-NA loss values. In that case,
+				# we don't need to plot the loss twice redundantly (since we'll
+				# already be plotting it as the overall loss), so we remove
+				# this dataset from the losses
+				if len(loss_col[loss_col.dataset_type == dataset][['dataset_type'] + [c for c in loss_col.columns if c.endswith('Loss')]].dropna(axis=1).columns) == 2:
+					loss_col = loss_col[loss_col.dataset_type != dataset].copy()
 			
-			metrics.loss = metrics.loss - metrics.kl_loss.fillna(0)
-			metrics = pd.concat([metrics, kl_loss]).reset_index(drop=True)
-			metrics = metrics.sort_values(['epoch', 'dataset_type']).reset_index(drop=True)
+			# if there's anything left after we've removed the identical
+			# losses to the overall loss, add them so they'll be included
+			# separately in the plot.
+			if len(loss_col) != 0:
+				loss_col.loss = loss_col[c].copy()
+				loss_col.loss_type = loss_col.dataset_type + f' ({c})'
+				metrics = pd.concat([metrics, loss_col]).reset_index(drop=True)
 		
+		metrics.dataset_type = metrics.loss_type
+		metrics = metrics.sort_values(['epoch', 'dataset_type']).reset_index(drop=True)
 		metrics.dataset_name = metrics.dataset_type + ' (' + metrics.dataset_name + ')'
 		
 		p = sns.lineplot(
