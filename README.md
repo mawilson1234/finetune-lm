@@ -48,7 +48,7 @@ The `ModelArguments` dataclass accepts the following parameters:
 
 - `model_name_or_path` (no default)
 - `config_name`: default is `model_name_or_path`
-- `cache_dir`: def; ault is Hugging Face's cache dir
+- `cache_dir`: default is Hugging Face's cache dir
 - `tokenizer_name`: default is `model_name_or_path`
 - `use_fast_tokenizer`: default is `True`
 - `model_revision`: default is `"main"`
