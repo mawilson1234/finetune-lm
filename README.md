@@ -34,7 +34,7 @@ A custom dataset class is provided in `core/dataset.py`. The class contains a Hu
 
 If you implement a data preprocessing function that maps a single example to multiple examples (for instance, `expand_with_masks`), you should add a key to the returned dictionary, `expanded_lengths`, that contains the expanded length of each example, in order. Since padding will be needed to ensure equal numbers of entries in all fields of the dataset, use `-1` as a padding token that will be removed. After preprocessing the dataset with the `data_preprocessing_fn` passed to the class constructor, the texts, labels, and metadata at each index will each be multiplied the number of times corresponding to the values in the `expanded_length` column when the pad values are dropped, ensuring that the texts, labels, and metadata correctly line up with the original example they correspond to.
 
-If you implement a data preprocessing function that should require the labels to be regenerated after word (e.g., span denoising), you should add it to the set `UPDATE_LABEL_FNS` in `data_preprocessing.py`. This will ensure that the dataset regenerates its labels attribute following application of the data preprocessing function.
+If you implement a data preprocessing function that should require the labels to be regenerated afterward (e.g., span denoising), you should add it to the set `UPDATE_LABEL_FNS` in `data_preprocessing.py`. This will ensure that the dataset regenerates its labels attribute following application of the data preprocessing function.
 
 In the training and test loops, using these attributes also ensures that the correct information is recorded with each example when the preprocessing strategy is `per_batch`.
 
