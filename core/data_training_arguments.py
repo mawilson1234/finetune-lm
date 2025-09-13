@@ -4,6 +4,7 @@ import sys
 import torch
 import random
 import loss_classes
+import data_evaluation
 import data_preprocessing
 
 from typing import Optional, Union, Callable, Any
@@ -240,6 +241,39 @@ class DataTrainingArguments:
 			"help": "Kwargs to use with the loss classes for each type of dataset. Classes are identified "
 			"by name in the dict. Kwargs are added to the dataclass instance attributes under "
 			"`DatasetType_ClassName_Key`, and then pulled from there to facilitate optimization with optuna."
+		}
+	)
+	
+	evaluation_fns: Optional[dict] = field(
+		default_factory=lambda: {
+			'train': [data_evaluation.evaluate_batch],
+			'validation': [data_evaluation.evaluate_batch],
+			'test': [data_evaluation.evaluate_batch],
+		},
+		metadata={
+			'help': 'A dictionary specifying which evaluation functions to run on the model outputs. '
+			'An evaluation function is passed at least the following for each batch of data for each epoch: '
+			'`model`, `tokenizer`, `inputs`, `input_texts`, `input_labels`, `batch_outputs`, `input_nums`, '
+			'`batch_metadata`, `epoch` (fine-tuning only), `batch_number` (fine-tuning only), `dataset_type`, '
+			'`loss` (fine-tuning only), and additional kwargs by any names (these contain the '
+			'individual losses during fine-tuning, the current model_mode for gpt-bert, and the dataset_name). '
+			'They must return a list of dictionaries. All results will be collected into a single dataframe and '
+			'saved as a csv.gz file in the output directory. Default is to always use `evaluate_batch`, a provided '
+			'function that dispatches to a function appropriate to the model type (LM, MLM, or Seq2Seq). Functions '
+			'are not run during an optimization study, since saving all results for all trials would be prohibitive.'
+		}
+	)
+	
+	evaluation_fns_kwargs: Optional[dict] = field(
+		default_factory=lambda: {
+			'train': {},
+			'validation': {},
+			'test': {},
+		},
+		metadata={
+			"help": 'Additional kwargs to pass to evaluation functions when they are called, as a dict mapping the '
+			'function name to a dict containing the kwargs for the appropriate evaluation function (`train`, '
+			'`validation`, or `test`).'
 		}
 	)
 	

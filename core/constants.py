@@ -195,8 +195,9 @@ MASKED_LANGUAGE_MODELS: set[str] = (
 		for n in range(84)
 	} |
 	{
-		f'ltg/ltg-bert-{c}' 
-		for c in {'bnc', 'babylm'}
+		f'ltg/gpt-bert-babylm-{s}' for s in {
+			'small', 'base',
+		}
 	}
 )
 
@@ -333,12 +334,16 @@ def model_not_supported_message(model_name_or_path: str) -> str:
 		'beside T5 models are not currently supported.)'
 	)
 
-
 def load_model(model_name_or_path: str, *args, **kwargs) -> 'AutoModel':
 	'''
 	Loads the model using the appropriate function.
 	'''
-	if model_name_or_path in NEXT_WORD_MODELS:
+	
+	# ThE second clause is needed to deal with 
+	# gpt-bert, which can be used as both a causal
+	# lm or as a masked lm, but we want to load
+	# it as a masked LM.
+	if model_name_or_path in NEXT_WORD_MODELS and not model_name_or_path in MASKED_LANGUAGE_MODELS:
 		model = AutoModelForCausalLM.from_pretrained(
 			model_name_or_path, *args, **kwargs
 		)

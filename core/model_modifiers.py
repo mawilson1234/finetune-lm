@@ -127,7 +127,7 @@ class PartiallyFrozenModelCallback:
 		
 		return name[0]
 	
-	def __call__(self, epoch: int = None, batch: int = None):
+	def __call__(self, epoch: int = None, batch: int = None) -> None:
 		# replace the frozen parameter grads with zeros at the
 		# corresponding indices. This will ensure that they
 		# won't be updated during the backward pass.
@@ -239,6 +239,59 @@ class FreezeWordTokensCallback(PartiallyFrozenModelCallback):
 			],
 			frozen=True,
 		)['frozen']
+
+class SwitchEncoderDecoderModesCallback:
+	def __init__(
+		self, model: AutoModel, tokenizer: AutoTokenizer,
+		switch_strategy: str = '', start: str = 'encoder',
+		freq: int = 1, log_switch: bool = False,
+	):
+		if not switch_strategy or switch_strategy not in ['epoch', 'batch']:
+			raise ValueError(
+				f'At least one of `epoch`, `batch` must be provided as a '
+				'switching strategy!'
+			)
+			
+		self.strategy = switch_strategy
+		self.freq = freq
+		
+		self.model = model
+		self.start = start
+		if self.start == 'encoder':
+			self.model.config.is_decoder = False
+		elif self.start == 'decoder':
+			self.model.config.is_encoder = True
+		
+		# we don't want to switch on the first call, since
+		# that is counterintuitive with the 'start' argument +
+		# the freq argument.
+		self._first_call = True
+		self.log_switch = log_switch
+		
+		if self.log_switch:
+			state = 'decoder' if self.model.config.is_decoder else 'encoder'
+			logger.info(f'{self.__class__.__name__}: {model.name_or_path} starting in {state} mode.')
+	
+	def __call__(self, epoch: int, batch: int) -> None:
+		# add once since we start at zero and don't want to 
+		# switch on the 0th epoch.
+		
+		# return early on the first call so we don't switch
+		if self._first_call:
+			self._first_call = False
+			return
+		
+		if epoch is not None and self.strategy == 'epoch' and epoch % self.freq == 0:
+			self.model.config.is_decoder = not self.model.config.is_decoder
+			if self.log_switch:
+				state = 'decoder' if self.model.config.is_decoder else 'encoder'
+				logger.info(f'{self.model.name_or_path} switched to {state} mode ({epoch=}).')
+		
+		if batch is not None and self.strategy == 'batch' and batch % self.freq == 0:
+			self.model.config.is_decoder = not self.model.config.is_decoder
+			if self.log_switch:
+				state = 'decoder' if self.model.config.is_decoder else 'encoder'
+				logger.info(f'{self.model.name_or_path} switched to {state} mode ({batch=}).')
 
 def add_new_tokens(
 	model: AutoModel, 

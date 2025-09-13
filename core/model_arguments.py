@@ -21,8 +21,20 @@ class ModelArguments:
 		metadata={"help": "Path to pretrained model or model identifier from huggingface.co/models"}
 	)
 	
+	model_kwargs: dict = field(
+		default_factory=lambda: {},
+		metadata={
+			"help": "Kwargs to be passed to AutoModel."
+		}
+	)
+	
 	config_name: Optional[str] = field(
 		default=None, metadata={"help": "Pretrained config name or path if not the same as model_name"}
+	)
+	
+	config_kwargs: Optional[dict] = field(
+		default_factory=lambda: {},
+		metadata={"help": "Kwargs passed to AutoConfig."}
 	)
 	
 	cache_dir: Optional[str] = field(
@@ -32,6 +44,14 @@ class ModelArguments:
 	
 	tokenizer_name: Optional[str] = field(
 		default=None, metadata={"help": "Pretrained tokenizer name or path if not the same as model_name"}
+	)
+	
+	tokenizer_kwargs: Optional[dict] = field(
+		default_factory=lambda: {},
+		metadata={
+			"help": 'Kwargs passed to AutoTokenizer. When necessary, some of these are already '
+			'predefined in constants.py.'
+		}
 	)
 	
 	use_fast_tokenizer: Optional[bool] = field(
@@ -82,19 +102,41 @@ class ModelArguments:
 		}
 	)
 	
-	model_pre_train_step_callbacks: Optional[list] = field(
-		default_factory=lambda: [],
+	model_callbacks: Optional[dict[str,list]] = field(
+		default_factory=lambda: {
+			'begin_epoch': [],
+			'pre_train_batch': [],
+			'pre_train_step': [],
+			'post_train_batch': [],
+			'pre_validation': [],
+			'pre_validation_batch': [],
+			'post_validation_batch': [],
+			'end_epoch': [],
+			'pre_test_batch': [],
+			'post_test_batch': [],
+		},
 		metadata={
 			"help": "Callbacks, implemented as classes that take the model + kwargs when "
-			"initialized and implement a __call__ function. To be run in sequence before "
-			"`optimizer.step()` following each training step."
+			"initialized and implement a __call__ function. To be run in sequence before at "
+			"the time in the training loop specified."
 		}
 	)
 	
-	model_pre_train_step_callbacks_kwargs: Optional[dict] = field(
-		default_factory=lambda: {},
+	model_callbacks_kwargs: Optional[dict] = field(
+		default_factory=lambda: {
+			'begin_epoch': {},
+			'pre_train_batch': {},
+			'pre_train_step': {},
+			'post_train_step': {},
+			'post_train_all': {},
+			'pre_validation_batch': {},
+			'post_validation_batch': {},
+			'end_epoch': {},
+			'pre_test_batch': {},
+			'post_test_batch': {},
+		},
 		metadata={
-			"help": "Kwargs, besides the model, to be passed to the model_train_step_callback "
+			"help": "Kwargs, besides the model, to be passed to the model_callback "
 			"initializer of the corresponding name."
 		},
 	)
@@ -102,7 +144,7 @@ class ModelArguments:
 	def __post_init__(self):
 		self.config_name = self.config_name or self.model_name_or_path
 		self.tokenizer_name = self.tokenizer_name or self.model_name_or_path
-		self.tokenizer_kwargs = get_tokenizer_kwargs(self.tokenizer_name)
+		self.tokenizer_kwargs.update(get_tokenizer_kwargs(self.tokenizer_name))
 		
 		self.tokenizer_name = self.tokenizer_kwargs['pretrained_model_name_or_path']
 		del self.tokenizer_kwargs['pretrained_model_name_or_path']

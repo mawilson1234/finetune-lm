@@ -2,11 +2,9 @@
 import logging
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.modules.loss import KLDivLoss
 
-from tqdm import tqdm
 from typing import *
 from constants import *
 
@@ -20,23 +18,19 @@ from transformers import logging as lg
 lg.set_verbosity_error()
 
 from dataset import Dataset
-
-from datasets import (
-	load_dataset,  
-	DatasetDict, 
-	disable_caching
-)
+from datasets import disable_caching
 # otherwise a cache file is saved for every time KLBaselineLoss is called,
 # which we don't want
 disable_caching()
-from datasets.utils import logging as dataset_utils_logging
+
 from datasets.utils import disable_progress_bar
+from datasets.utils import logging as dataset_utils_logging
 disable_progress_bar()
 dataset_utils_logging.set_verbosity_error()
 
 import data_preprocessing
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 class OutputsDefaultLoss:
 	def __init__(self, *args, **kwargs):
@@ -65,8 +59,8 @@ class KLBaselineLoss(KLDivLoss):
 		batch_size: int = 1,
 		scaleby: float = 1.,
 		n_examples_per_batch: int = None,
-		model_kwargs: Dict = {},
-		tokenizer_kwargs: Dict = {},
+		model_kwargs: dict = {},
+		tokenizer_kwargs: dict = {},
 		size_average = None,
 		reduce = None,
 		reduction: str = 'none',
@@ -79,6 +73,10 @@ class KLBaselineLoss(KLDivLoss):
 		data_preprocessing_fn_kwargs: dict = None,
 		data_preprocessing_fn_strategy: str = 'once',
 		return_all: bool = False,
+		model_callbacks: dict[str,list[callable]] = {},
+		model_callbacks_kwargs: dict[str,dict] = {},
+		baseline_model_callbacks: dict[str,list[callable]] = {},
+		baseline_model_callbacks_kwargs: dict[str,dict] = {},
 	) -> None:
 		'''
 		Creates a KL divergence loss object that codes divergence of a fine-tuned
@@ -111,6 +109,14 @@ class KLBaselineLoss(KLDivLoss):
 				data_preprocessing_fn_strategy		: whether to preprocess all datasets `once`, or reprocess
 													  per batch (=`epoch`).
 				return_all 							: whether to return the kl div loss for each example.
+				model_callbacks: dict[str,list[callable]]: dict mapping 'pre_batch', 'post_batch', 'pre_dataset',
+													  'post_dataset' to a list of
+													  callbacks to run for the model being fine-tuned.
+				model_callbacks_kwargs: dict[str,dict]: dict mapping the same keys to a dict mapping
+													  to dicts mapping the callback names to dicts of kwargs
+													  to pass to their init method.
+				baseline_model_callbacks: dict[str,list[callable]]: same, but for the baseline model.
+				baseline_model_callbacks_kwargs: dict[str,dict]: same, but for the baseline model.
 		'''
 		super(KLBaselineLoss, self).__init__(size_average, reduce, reduction)
 		self.model = model
@@ -118,14 +124,14 @@ class KLBaselineLoss(KLDivLoss):
 		self.device	= self.model.device
 		self.batch_size = batch_size
 		
-		log.debug(f'Initializing Baseline Model for KLBaselineLoss: {self.model.name_or_path}')
+		logger.debug(f'Initializing Baseline Model for KLBaselineLoss: {self.model.name_or_path}')
 		self.baseline_model	= load_model(self.model.name_or_path, **model_kwargs).to(self.device)
 		
 		# we're not fine-tuning this
 		# _ = is to prevent printing
 		_ = self.baseline_model.eval()
 		
-		log.debug(f'Initializing Baseline Tokenizer for KLBaselineLoss: {self.tokenizer.name_or_path}')
+		logger.debug(f'Initializing Baseline Tokenizer for KLBaselineLoss: {self.tokenizer.name_or_path}')
 		self.baseline_tokenizer = load_tokenizer(self.tokenizer.name_or_path, **tokenizer_kwargs)
 		
 		# set up the dataset
@@ -195,9 +201,39 @@ class KLBaselineLoss(KLDivLoss):
 		self.scaleby = scaleby
 		
 		self.data_preprocessing_fn = data_preprocessing_fn
-		self.data_preprocessing_fn_kwargs = data_preprocessing_fn_kwargs
-		self.data_preprocessing_fn_strategy = data_preprocessing_fn_strategy if data_preprocessing_fn is not None else ''
+		self.data_preprocessing_fn_kwargs = data_preprocessing_fn_kwargs if data_preprocessing_fn_kwargs else {}
+		self.data_preprocessing_fn_strategy = data_preprocessing_fn_strategy if data_preprocessing_fn_strategy is not None else ''
 		self.return_all = return_all
+		
+		self.model_callbacks = {}
+		for when_to_run_callbacks in model_callbacks:
+			self.model_callbacks[when_to_run_callbacks] = model_callbacks[when_to_run_callbacks]
+			if self.model_callbacks[when_to_run_callbacks] and not isinstance(model_callbacks[when_to_run_callbacks], list):
+				self.model_callbacks[when_to_run_callbacks] = [model_callbacks[when_to_run_callbacks]]
+			
+			if self.model_callbacks[when_to_run_callbacks]:
+				self.model_callbacks[when_to_run_callbacks] = [
+					callback(
+						model=self.model, tokenizer=self.tokenizer,
+						**model_callbacks_kwargs.get(when_to_run_callbacks, {}).get(callback.__name__, {})
+					)
+					for callback in self.model_callbacks[when_to_run_callbacks]
+				]
+		
+		self.baseline_model_callbacks = {}
+		for when_to_run_callbacks in baseline_model_callbacks:
+			self.baseline_model_callbacks[when_to_run_callbacks] = baseline_model_callbacks[when_to_run_callbacks]
+			if self.baseline_model_callbacks[when_to_run_callbacks] and not isinstance(baseline_model_callbacks[when_to_run_callbacks], list):
+				self.baseline_model_callbacks[when_to_run_callbacks] = [baseline_model_callbacks[when_to_run_callbacks]]
+			
+			if self.baseline_model_callbacks[when_to_run_callbacks]:
+				self.baseline_model_callbacks[when_to_run_callbacks] = [
+					callback(
+						model=self.baseline_model, tokenizer=self.baseline_tokenizer,
+						**baseline_model_callbacks_kwargs.get(when_to_run_callbacks, {}).get(callback.__name__, {})
+					)
+					for callback in self.baseline_model_callbacks[when_to_run_callbacks]
+				]
 	
 	def forward(
 		self, 
@@ -231,10 +267,23 @@ class KLBaselineLoss(KLDivLoss):
 		total_kl_divs = [torch.Tensor([0.]).to(self.model.device) for dataloader in dataloaders]
 		kl_divss = [[] for dataloader in dataloaders]
 		for kl_divs, total_kl_div, dataloader in zip(kl_divss, total_kl_divs, dataloaders):
-			for batch in dataloader:
+			for callback in self.model_callbacks.get('pre_dataset', []):
+				callback(epoch=None, batch=None)
+			
+			for callback in self.baseline_model_callbacks.get('pre_dataset', []):
+				callback(epoch=None, batch=None)
+			
+			for i, batch in enumerate(dataloader):
+				for callback in self.model_callbacks.get('pre_batch', []):
+					callback(epoch=None, batch=i)
+				
+				for callback in self.baseline_model_callbacks.get('pre_batch', []):
+					callback(epoch=None, batch=i)
+				
 				if self.data_preprocessing_fn_strategy == 'per_batch':
 					batch = self.data_preprocessing_fn(
 						inputs=batch,
+						model=self.model,
 						tokenizer=self.baseline_tokenizer,
 						**self.data_preprocessing_fn_kwargs,
 					)
@@ -285,6 +334,18 @@ class KLBaselineLoss(KLDivLoss):
 				# get mean for each example and accumulate the total for the whole set
 				kl_div = kl_div.sum(dim=-1)/divisor.sum(dim=-1)
 				total_kl_div += kl_div.sum(dim=-1)
+				
+				for callback in self.model_callbacks.get('post_batch', []):
+					callback(epoch=None, batch=i)
+				
+				for callback in self.baseline_model_callbacks.get('post_batch', []):
+					callback(epoch=None, batch=i)
+			
+			for callback in self.model_callbacks.get('post_dataset', []):
+				callback(epoch=None, batch=None)
+			
+			for callback in self.baseline_model_callbacks.get('post_dataset', []):
+				callback(epoch=None, batch=None)
 		
 		total_kl_divs = [
 			(total_kl_div/n) * scaleby 

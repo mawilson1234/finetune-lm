@@ -8,7 +8,7 @@ import numpy as np
 
 from typing import Callable, Any
 from collections import Counter
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, AutoModel
 
 def pad_tensor(t: torch.Tensor, pad: int, pad_id: int = 0, dim: int = -1) -> torch.Tensor:
 	'''
@@ -104,6 +104,7 @@ def _expand_rows(
 
 def identity(
 	inputs: dict[str,torch.Tensor], 
+	model: AutoModel,
 	tokenizer: AutoTokenizer, 
 ) -> dict[str,torch.Tensor]:
 	'''
@@ -122,6 +123,7 @@ def identity(
 
 def remove_non_mask_tokens_from_labels(
 	inputs: dict[str,torch.Tensor],
+	model: AutoModel,
 	tokenizer: AutoTokenizer,
 ) -> dict[str,torch.Tensor]:
 	'''
@@ -196,6 +198,7 @@ def _get_mask_indices(
 
 def mask_random_tokens(
 	inputs: dict[str,torch.Tensor],
+	model: AutoModel,
 	tokenizer: AutoTokenizer,
 	mask_prop: float = 0.15,
 	replacement_props: dict[str, float] = None
@@ -284,6 +287,7 @@ def mask_random_tokens(
 
 def mask_random_spans(
 	inputs: dict[str,torch.Tensor],
+	model: AutoModel,
 	tokenizer: AutoTokenizer,
 	mask_prop: float = 0.15,
 	mean_noise_span_length: float = 3.,
@@ -460,6 +464,7 @@ def mask_random_spans(
 
 def mask_truerandom_spans(
 	inputs: dict[str,torch.Tensor],
+	model: AutoModel,
 	tokenizer: AutoTokenizer,
 	mask_prop: float = 0.15,
 ) -> dict[str,torch.Tensor]:
@@ -573,6 +578,7 @@ def mask_truerandom_spans(
 
 def expand_with_masks(
 	inputs: dict[str,torch.Tensor],
+	model: AutoModel,
 	tokenizer: AutoTokenizer,
 ) -> dict[str,torch.Tensor]:
 	'''
@@ -721,6 +727,7 @@ def expand_with_masks(
 
 def mask_word_tokens(
 	inputs: dict[str,torch.Tensor],
+	model: AutoModel,
 	tokenizer: AutoTokenizer,
 	word_tokens_to_mask: list[str],
 ) -> dict[str,torch.Tensor]:
@@ -817,6 +824,7 @@ def mask_word_tokens(
 
 def mask_words(
 	inputs: dict[str,torch.Tensor],
+	model: AutoModel,
 	tokenizer: AutoTokenizer,
 	words_to_mask: list[str],
 ) -> dict[str,torch.Tensor]:
@@ -1022,5 +1030,38 @@ def mask_words(
 # here.
 UPDATE_LABELS_FNS: set[Callable[[dict[str,torch.Tensor],AutoTokenizer,Any],dict[str,torch.Tensor]]] = {
 	mask_random_spans,
-	mask_truerandom_spans
+	mask_truerandom_spans,
 }
+
+def identity_if_decoder_mask_if_encoder(
+	inputs: dict[str,torch.Tensor],
+	model: AutoModel,
+	tokenizer: AutoTokenizer,
+	mask_fn: callable = mask_random_tokens,
+	mask_fn_kwargs: dict = None,
+) -> dict[str,torch.Tensor]:
+	'''
+	If the models' `model.config.is_decoder`
+	attribute is set to false, calls mask_fn
+	with inputs, model, tokenizer, and mask_kwargs,
+	and returns the result.
+	
+	If the models' `model.config.is_decoder`
+	attribute is True, calls identity with
+	inputs, model, tokenizer, and mask_kwargs,
+	and returns the result.
+	'''
+	if model.config.is_decoder:
+		try:
+			UPDATE_LABELS_FNS.remove(identity_if_decoder_mask_if_encoder)
+		except KeyError:
+			pass
+		
+		return identity(inputs=inputs, model=model, tokenizer=tokenizer)
+	
+	if not model.config.is_decoder:
+		if mask_fn in UPDATE_LABELS_FNS:
+			UPDATE_LABELS_FNS.update({identity_if_decoder_mask_if_encoder})
+		
+		mask_fn_kwargs = mask_fn_kwargs if mask_fn_kwargs else {}
+		return mask_fn(inputs=inputs, model=model, tokenizer=tokenizer, **mask_fn_kwargs)
