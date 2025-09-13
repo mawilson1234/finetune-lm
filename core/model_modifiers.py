@@ -293,6 +293,26 @@ class SwitchEncoderDecoderModesCallback:
 				state = 'decoder' if self.model.config.is_decoder else 'encoder'
 				logger.info(f'{self.model.name_or_path} switched to {state} mode ({batch=}).')
 
+class SetEncoderModeCallback:
+	def __init__(self, model: AutoModel, tokenizer: AutoTokenizer):
+		'''
+		Sets the model to encoder mode when called.
+		'''
+		self.model = model
+	
+	def __call__(self, epoch: int, batch: int) -> None:
+		self.model.config.is_decoder = False
+
+class SetDecoderModeCallback:
+	def __init__(self, model: AutoModel, tokenizer: AutoTokenizer):
+		'''
+		Sets the model to decoder mode when called.
+		'''
+		self.model = model
+	
+	def __call__(self, epoch: int, batch: int) -> None:
+		self.model.config.is_decoder = True
+
 def add_new_tokens(
 	model: AutoModel, 
 	tokenizer: AutoTokenizer, 
