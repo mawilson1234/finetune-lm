@@ -35,7 +35,7 @@ python core/finetune_lm.py \
 	--params.lr.values 1e-9 1e-3 \
 	--params.lr.suggest_kwargs.log \
 	--params.train_KLBaselineLoss_scaleby.values 1 5000 \
-	--params.train_KLBaselineLoss_scaleby.type int \
+	--params.train_KLBaselineLoss_scaleby.type float \
 	--params.train_KLBaselineLoss_scaleby.suggest_kwargs.log \
 	--study_kwargs.storage optuna.storages.JournalStorage \
 	--study_kwargs.storage_kwargs.log_storage optuna.storages.journal.JournalFileBackend \
