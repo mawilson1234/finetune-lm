@@ -103,9 +103,9 @@ def _expand_rows(
 # `data_preprocessing_fn_kwargs`.
 
 def identity(
-	inputs: dict[str,torch.Tensor], 
+	inputs: dict[str,torch.Tensor],
 	model: AutoModel,
-	tokenizer: AutoTokenizer, 
+	tokenizer: AutoTokenizer,
 ) -> dict[str,torch.Tensor]:
 	'''
 	Set labels to inputs as a default proprocessing function.
@@ -243,8 +243,8 @@ def mask_random_tokens(
 	
 	# replace masked positions in inputs with mask tokens
 	masked_indices = _get_mask_indices(
-		input_ids=inputs['input_ids'], 
-		tokenizer=tokenizer, 
+		input_ids=inputs['input_ids'],
+		tokenizer=tokenizer,
 		mask_prop=mask_prop
 	)
 	masked_input_ids = inputs['input_ids'].detach().clone()

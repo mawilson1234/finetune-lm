@@ -11,7 +11,7 @@ datasets.logging.set_verbosity_error()
 import data_preprocessing
 
 from typing import Callable
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, AutoModel
 
 def _expand_rows(
 	original_texts: list[str], 
@@ -68,8 +68,9 @@ class Dataset:
 	using it for training/inference.
 	'''
 	def __init__(
-		self, 
+		self,
 		file: str,
+		model: AutoModel,
 		tokenizer: AutoTokenizer,
 		split_name: str,
 		max_samples: int = None,
@@ -82,7 +83,7 @@ class Dataset:
 	) -> None:
 		if data_preprocessing_fn_kwargs is None:
 			data_preprocessing_fn_kwargs = {}
-	
+		
 		self.file = file
 		self.split_name = split_name
 		self.data_format = re.findall(r'.*?\.(txt|json)\.gz$', self.file)[-1].replace('txt', 'text')
@@ -95,6 +96,7 @@ class Dataset:
 		self.load_metadata()
 		
 		self.dataset = self.preprocess_dataset(
+			model=model,
 			tokenizer=tokenizer,
 			split=split_name,
 			max_samples=max_samples,
@@ -124,6 +126,7 @@ class Dataset:
 	
 	def preprocess_dataset(
 		self,
+		model: AutoModel,
 		tokenizer: AutoTokenizer,
 		split: str = 'train',
 		max_samples: int = None,
@@ -214,6 +217,7 @@ class Dataset:
 				num_proc=preprocessing_num_workers,
 				load_from_cache_file=not overwrite_cache,
 				fn_kwargs=dict(
+					model=model,
 					tokenizer=tokenizer,
 					**data_preprocessing_fn_kwargs
 				)
@@ -231,7 +235,7 @@ class Dataset:
 			# update the labels if needed. This is for span denoising objectives.
 			if data_preprocessing_fn in data_preprocessing.UPDATE_LABELS_FNS:
 				self.labels = [tokenizer.decode(label[label != -100]) for label in dataset['labels']]
-			
+		
 		return dataset
 	
 	def __str__(self) -> str:

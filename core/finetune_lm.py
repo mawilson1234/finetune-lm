@@ -804,6 +804,7 @@ def finetune_lm(
 	if data_args.train_file:
 		train_dataset = Dataset(
 			file=data_args.train_file,
+			model=model,
 			tokenizer=tokenizer,
 			split_name='train',
 			max_samples=data_args.max_train_samples,
@@ -817,6 +818,7 @@ def finetune_lm(
 		
 		validation_dataset = Dataset(
 			file=data_args.validation_file,
+			model=model,
 			tokenizer=tokenizer,
 			split_name='validation',
 			max_samples=data_args.max_validation_samples,
@@ -829,7 +831,7 @@ def finetune_lm(
 		)
 		
 		best_dev_loss = finetune_model(
-			model=model, 
+			model=model,
 			tokenizer=tokenizer,
 			train_dataset=train_dataset,
 			validation_dataset=validation_dataset,
@@ -851,6 +853,7 @@ def finetune_lm(
 		for test_file in data_args.test_file:
 			test_dataset = Dataset(
 				file=test_file,
+				model=model,
 				tokenizer=tokenizer,
 				split_name='test',
 				max_samples=data_args.max_test_samples,
