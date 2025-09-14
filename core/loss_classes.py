@@ -9,7 +9,7 @@ from typing import *
 from constants import *
 
 from transformers import (
-	AutoModelForCausalLM, 
+	AutoModelForCausalLM,
 	AutoModelForMaskedLM,
 	AutoModelForSeq2SeqLM,
 	AutoTokenizer
@@ -154,6 +154,7 @@ class KLBaselineLoss(KLDivLoss):
 		self.dataset = [
 			Dataset(
 				file=file,
+				model=self.baseline_model,
 				tokenizer=self.baseline_tokenizer,
 				split_name=split_name,
 				max_samples=max_samples,
