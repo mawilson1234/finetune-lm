@@ -402,7 +402,6 @@ def finetune_model(
 				
 				model.train()
 				optimizer.zero_grad(set_to_none=True) # this is supposed to be faster than .zero_grad()
-				breakpoint()
 				outputs = model(**inputs)
 				loss = compute_loss(
 					outputs=outputs, 

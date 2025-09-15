@@ -1,11 +1,10 @@
 #!/bin/bash
 
-#SBATCH --job-name=pythia-2.8b-baseline
+#SBATCH --job-name=gpt2-baselines
 #SBATCH --output=joblogs/%x_%j.txt
 #SBATCH --mem=80G
 #SBATCH --partition=gpu
 #SBATCH --gpus=1
-#SBATCH --constraint=a100-80g
 #SBATCH --time=01:00:00
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND
 
@@ -13,7 +12,7 @@ module load miniconda
 
 source activate finetune-lm
 
-echo "Running script scripts/pythia-2.8b-baseline.sh"
+echo "Running script scripts/crined_drink/gpt2-baselines.sh"
 echo ""
 
 python core/finetune_lm.py \
@@ -53,4 +52,4 @@ python core/finetune_lm.py \
 				"'data/syn_unseffed_SVO-OSV_bv_for_human_exp/syn_unseffed_SVO-OSV_bv_for_human_exp.txt.gz'" \
 				"'data/syn_unseffed_SVO-OSV_wr_for_human_exp/syn_unseffed_SVO-OSV_wr_for_human_exp.txt.gz'" \
 				"'data/combined_fillers_for_human_exp/combined_fillers_for_human_exp.txt.gz'" \
-	--output_dir "'outputs/baseline/EleutherAI-pythia-2.8b'"
+	--output_dir "'outputs/baseline/EleutherAI-pythia2.8b'"
