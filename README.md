@@ -123,6 +123,8 @@ The `KLBaselineLoss` class computes a loss term based on the Kullbeck-Leibler di
 - `model_callbacks_kwargs`: a dictionary mapping `pre_dataset`, `pre_batch`, `post_batch`, and `post_dataset` to a dictionary mapping the name of a callback for the model being fine-tuned to a dictionary containing additional kwargs passed to it upon initialization.
 - `baseline_model_callbacks`: see above, but for the baseline model being compared to the fine-tuned model.
 - `baseline_model_callbacks_kwargs`: see above, but for the baseline model being compared to the fine-tuned model.
+- `baseline_model_modifier_fns`: a list of functions used to modify the baseline model and tokenizer after they are initialized. See above for details.
+- `baseline_model_modifier_fn_kwargs`: a dict mapping model modifying function names to kwargs. See above for details.
 
 #### `OptimizationArguments`
 

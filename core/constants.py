@@ -1,8 +1,10 @@
 from transformers import (
+	AutoModel,
+	AutoConfig,
+	AutoTokenizer,
 	AutoModelForCausalLM,
 	AutoModelForMaskedLM,
 	AutoModelForSeq2SeqLM,
-	AutoTokenizer,
 )
 
 GPT2_MODELS: set[str] = (
@@ -393,3 +395,82 @@ def load_tokenizer(tokenizer_name_or_path: str, *args, **kwargs) -> AutoTokenize
 		tokenizer.bos_token_id = tokenizer.eos_token_id
 	
 	return tokenizer
+
+def load_tokenizer_and_model(
+	model_args: 'ModelArguments' = None,
+	name_or_path: str = None,
+	model_kwargs: dict = None,
+	tokenizer_kwargs: dict = None,
+	config_kwargs: dict = None,
+	use_gpu: bool = False,
+	model_modifier_fns: list[callable] = None,
+	model_modifier_fn_kwargs: dict[str,dict] = None,
+) -> tuple[AutoTokenizer, AutoModel]:
+	'''Loads the tokenizer and model as specified in model_args or by the passed arguments.'''
+	if model_args is not None:
+		model_name_or_path = model_args.model_name_or_path
+		config_name = model_args.config_name
+		tokenizer_name = model_args.tokenizer_name
+		model_kwargs = model_args.model_kwargs
+		tokenizer_kwargs = model_args.tokenizer_kwargs
+		config_kwargs = model_args.config_kwargs
+		model_kwargs.update(dict(
+			from_flax=model_args.from_flax,
+			cache_dir=model_args.cache_dir,
+			revision=model_args.model_revision,
+			token=model_args.token,
+		))
+		tokenizer_kwargs.update(dict(
+			cache_dir=model_args.cache_dir,
+			use_fast=model_args.use_fast_tokenizer,
+			revision=model_args.model_revision,
+			token=model_args.token,
+		))
+		config_kwargs.update(dict(
+			cache_dir=model_args.cache_dir,
+			revision=model_args.cache_dir,
+			use_auth_token=model_args.token,
+		))
+		use_gpu = model_args.use_gpu
+		model_modifier_fns = model_args.model_modifier_fns
+		model_modifier_fn_kwargs = model_args.model_modifier_fn_kwargs
+	else:
+		model_name_or_path = config_name = tokenizer_name = name_or_path
+		model_kwargs = model_kwargs if model_kwargs is not None else {}
+		tokenizer_kwargs = tokenizer_kwargs if tokenizer_kwargs is not None else {}
+		config_kwargs = config_kwargs if config_kwargs is not None else {}
+		model_modifier_fns = model_modifier_fns if model_modifier_fns is not None else []
+		model_modifier_fn_kwargs = model_modifier_fn_kwargs if model_modifier_fn_kwargs is not None else {}
+		
+	if name_or_path in NON_HF_LLAMA_MODELS:
+		raise ValueError(model_not_supported_message(name_or_path))
+	
+	config = AutoConfig.from_pretrained(
+		config_name,
+		**config_kwargs
+	)
+	
+	tokenizer = load_tokenizer(
+		tokenizer_name,
+		**tokenizer_kwargs,
+	)
+	
+	model = load_model(
+		model_name_or_path,
+		config=config,
+		**model_kwargs,
+	)
+	
+	if model.name_or_path in HF_LLAMA_MODELS:
+		model.resize_token_embeddings(len(tokenizer))
+	
+	if use_gpu and torch.cuda.is_available():
+		model.to('cuda')
+	elif use_gpu:
+		logger.warning('`use_gpu` was set, but no GPU was found. Defaulting to CPU.')
+	
+	for fn in model_modifier_fns:
+		kwargs = model_modifier_fn_kwargs.get(fn.__name__, {})
+		tokenizer, model = fn(model=model, tokenizer=tokenizer, **kwargs)
+	
+	return tokenizer, model

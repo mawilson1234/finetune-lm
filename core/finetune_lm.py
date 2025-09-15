@@ -95,52 +95,6 @@ def set_seed(seed: int) -> None:
 	torch.cuda.manual_seed(seed)
 	torch.cuda.manual_seed_all(seed)
 
-def load_tokenizer_and_model(model_args: ModelArguments) -> Tuple:
-	'''Loads the tokenizer and model as specified in model_args.'''
-	if model_args.model_name_or_path in NON_HF_LLAMA_MODELS:
-		raise ValueError(model_not_supported_message(model_name_or_path))
-	
-	config = AutoConfig.from_pretrained(
-		model_args.config_name,
-		cache_dir=model_args.cache_dir,
-		revision=model_args.model_revision,
-		use_auth_token=model_args.token,
-		**model_args.config_kwargs
-	)
-	
-	tokenizer = load_tokenizer(
-		model_args.tokenizer_name,
-		cache_dir=model_args.cache_dir,
-		use_fast=model_args.use_fast_tokenizer,
-		revision=model_args.model_revision,
-		use_auth_token=model_args.token,
-		**model_args.tokenizer_kwargs,
-	)
-	
-	model = load_model(
-		model_args.model_name_or_path,
-		from_flax=model_args.from_flax,
-		config=config,
-		cache_dir=model_args.cache_dir,
-		revision=model_args.model_revision,
-		token=model_args.token,
-		**model_args.model_kwargs,
-	)
-	
-	if model.name_or_path in HF_LLAMA_MODELS:
-		model.resize_token_embeddings(len(tokenizer))
-	
-	if model_args.use_gpu and torch.cuda.is_available():
-		model.to('cuda')
-	elif model_args.use_gpu:
-		logger.warning('`use_gpu` was set, but no GPU was found. Defaulting to CPU.')
-	
-	for fn in model_args.model_modifier_fns:
-		kwargs = model_modifier_fn_kwargs.get(fn.__name__, {})
-		tokenizer, model = fn(model=model, tokenizer=tokenizer, **kwargs)
-	
-	return tokenizer, model
-
 def finetune_model(
 	model: Union[AutoModelForCausalLM, AutoModelForMaskedLM, AutoModelForSeq2SeqLM],
 	tokenizer: AutoTokenizer,

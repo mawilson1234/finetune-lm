@@ -73,10 +73,12 @@ class KLBaselineLoss(KLDivLoss):
 		data_preprocessing_fn_kwargs: dict = None,
 		data_preprocessing_fn_strategy: str = 'once',
 		return_all: bool = False,
-		model_callbacks: dict[str,list[callable]] = {},
-		model_callbacks_kwargs: dict[str,dict] = {},
-		baseline_model_callbacks: dict[str,list[callable]] = {},
-		baseline_model_callbacks_kwargs: dict[str,dict] = {},
+		model_callbacks: dict[str,list[callable]] = None,
+		model_callbacks_kwargs: dict[str,dict] = None,
+		baseline_model_callbacks: dict[str,list[callable]] = None,
+		baseline_model_callbacks_kwargs: dict[str,dict] = None,
+		baseline_model_modifier_fns: list[callable] = None,
+		baseline_model_modifier_fn_kwargs: dict[str,dict] = None,
 	) -> None:
 		'''
 		Creates a KL divergence loss object that codes divergence of a fine-tuned
@@ -117,6 +119,10 @@ class KLBaselineLoss(KLDivLoss):
 													  to pass to their init method.
 				baseline_model_callbacks: dict[str,list[callable]]: same, but for the baseline model.
 				baseline_model_callbacks_kwargs: dict[str,dict]: same, but for the baseline model.
+				baseline_model_modifier_fns: list[callable]: a list of functions to use to modify the baseline model
+													  and tokenizer after they are initialized.
+				baseline_model_modifier_fn_kwargs: dict[str,dict]: a dict mapping baseline model modifier function 
+													 names to kwargs to pass to that function.
 		'''
 		super(KLBaselineLoss, self).__init__(size_average, reduce, reduction)
 		self.model = model
@@ -124,15 +130,38 @@ class KLBaselineLoss(KLDivLoss):
 		self.device	= self.model.device
 		self.batch_size = batch_size
 		
-		logger.debug(f'Initializing Baseline Model for KLBaselineLoss: {self.model.name_or_path}')
-		self.baseline_model	= load_model(self.model.name_or_path, **model_kwargs).to(self.device)
+		model_callbacks = {} if model_callbacks is None else model_callbacks
+		model_callbacks_kwargs = {} if model_callbacks_kwargs is None else model_callbacks_kwargs
+		baseline_model_callbacks = {} if baseline_model_callbacks is None else baseline_model_callbacks
+		baseline_model_callbacks_kwargs = {} if baseline_model_callbacks_kwargs is None else baseline_model_callbacks_kwargs
+		baseline_model_modifier_fns = [] if baseline_model_modifier_fns is None else baseline_model_modifier_fns
+		baseline_model_modifier_fn_kwargs = {} if baseline_model_modifier_fn_kwargs is None else baseline_model_modifier_fn_kwargs
+		
+		# logger.debug(f'Initializing Baseline Tokenizer for KLBaselineLoss: {self.tokenizer.name_or_path}')
+		# self.baseline_tokenizer = load_tokenizer(self.tokenizer.name_or_path, **tokenizer_kwargs)
+		
+		# logger.debug(f'Initializing Baseline Model for KLBaselineLoss: {self.model.name_or_path}')
+		# self.baseline_model	= load_model(self.model.name_or_path, **model_kwargs).to(self.device)
+		
+		logger.debug(f'Initializing baseline tokenizer and model for KLBaselineLoss: {self.model.name_or_path}')
+		self.baseline_tokenizer, self.baseline_model = load_tokenizer_and_model(
+			name_or_path=self.model.name_or_path,
+			model_kwargs=model_kwargs,
+			tokenizer_kwargs=tokenizer_kwargs,
+			use_gpu=self.model.device.type == 'cuda',
+			model_modifier_fns=baseline_model_modifier_fns,
+			model_modifier_fn_kwargs=baseline_model_modifier_fn_kwargs,
+		)
+		
+		for fn in baseline_model_modifier_fns:
+			kwargs = baseline_model_modifier_fns_kwargs.get(fn.__name__, {})
+			self.baseline_tokenizer, self.baseline_model = fn(
+				model=self.baseline_model, tokenizer=self.tokenizer, **kwargs
+			)
 		
 		# we're not fine-tuning this
 		# _ = is to prevent printing
 		_ = self.baseline_model.eval()
-		
-		logger.debug(f'Initializing Baseline Tokenizer for KLBaselineLoss: {self.tokenizer.name_or_path}')
-		self.baseline_tokenizer = load_tokenizer(self.tokenizer.name_or_path, **tokenizer_kwargs)
 		
 		# set up the dataset
 		self.dataset = dataset
