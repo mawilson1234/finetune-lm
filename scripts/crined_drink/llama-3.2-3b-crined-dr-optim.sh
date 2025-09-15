@@ -18,6 +18,7 @@ echo ""
 
 python core/finetune_lm.py \
 	--model_name_or_path "'meta-llama/Llama-3.2-3B'" \
+	--use_gpu \
 	--token "'~/.hf_auth_token'" \
 	--train_file "'data/crined_transitive_SVO-OSV_dr_for_human_exp/crined_transitive_SVO-OSV_dr_for_human_exp.txt.gz'" \
 	--validation_file "'data/crined_passive_SVO-OSV_dr_for_human_exp/crined_passive_SVO-OSV_dr_for_human_exp.txt.gz'" \
