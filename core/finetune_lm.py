@@ -127,6 +127,8 @@ def load_tokenizer_and_model(model_args: ModelArguments) -> Tuple:
 		**model_args.model_kwargs,
 	)
 	
+	# this prevents an indexing error since we have
+	# to add a new pad token to this model.
 	if model.name_or_path in HF_LLAMA_MODELS:
 		model.resize_token_embeddings(len(tokenizer))
 	
