@@ -295,228 +295,246 @@ def finetune_model(
 				callback(epoch=epoch, batch=None)
 			
 			dataloader = dict(
-				train=DataLoader(
-					train_dataset.dataset,
-					batch_size=data_args.per_device_train_batch_size,
-					collate_fn=data_preprocessing.pad_batch
-				),
-				validation=DataLoader(
-					validation_dataset.dataset,
-					batch_size=data_args.per_device_validation_batch_size,
-					collate_fn=data_preprocessing.pad_batch
-				),
+				train=[
+					DataLoader(
+						d.dataset,
+						batch_size=data_args.per_device_train_batch_size,
+						collate_fn=data_preprocessing.pad_batch
+					) for d in train_dataset
+				],
+				validation=[
+					DataLoader(
+						d.dataset,
+						batch_size=data_args.per_device_validation_batch_size,
+						collate_fn=data_preprocessing.pad_batch
+					) for d in validation_dataset 
+				]
 			)
+			
+			# this lets us associate each dataset with its name in the results
+			for k, l in zip(dataloader, [train_dataset, test_dataset]):
+				for dl, d in zip(dataloader[k], l):
+					dl.dataset_name = d.basename
 			
 			# pass through the training set
 			n_observed_examples = 0
 			epoch_train_losses = []
 			each_train_losses = {}
 			
-			for i, inputs in enumerate(dataloader['train']):
-				for callback in model_callbacks.get('pre_train_batch', []):
-					callback(epoch=epoch, batch=i)
+			for dl in dataloader['train']:
+				for callback in model_callbacks.get('pre_train_dataset', []):
+					callback(epoch=epoch, batch=None)
 				
-				n_examples_in_batch = inputs['input_ids'].shape[0]
-				
-				# use this as a unique input identifier
-				input_nums = list(range(n_observed_examples, n_observed_examples + n_examples_in_batch))
-				n_observed_examples += n_examples_in_batch
-				
-				input_texts = train_dataset.texts[(n_observed_examples - n_examples_in_batch):n_observed_examples]
-				input_labels = train_dataset.labels[(n_observed_examples - n_examples_in_batch):n_observed_examples]
-				batch_metadata = train_dataset.metadata[(n_observed_examples - n_examples_in_batch):n_observed_examples]
-				
-				if data_args.data_preprocessing_fn_strategy.get('train') == 'per_batch':
-					inputs = data_args.data_preprocessing_fn.get('train', data_preprocessing.identity)(
-						inputs=inputs,
-						model=model,
-						tokenizer=tokenizer,
-						**data_args.data_preprocessing_fn_kwargs.get('train', {}),
-					)
+				for i, inputs in enumerate(dl):
+					for callback in model_callbacks.get('pre_train_batch', []):
+						callback(epoch=epoch, batch=i)
 					
-					if data_args.data_preprocessing_fn.get('train') in data_preprocessing.UPDATE_LABELS_FNS:
-						# update the labels if needed. This is for span denoising objectives.
-						input_labels = [tokenizer.decode(label[label != -100]) for label in input_labels]
+					n_examples_in_batch = inputs['input_ids'].shape[0]
 					
-					if 'expanded_length' in inputs:
-						input_nums, input_texts, input_labels, batch_metadata = data_preprocessing._expand_rows(
-							input_nums,
-							input_texts,
-							input_labels,
-							batch_metadata,
-							expanded_lengths=inputs['expanded_length'],
+					# use this as a unique input identifier
+					input_nums = list(range(n_observed_examples, n_observed_examples + n_examples_in_batch))
+					n_observed_examples += n_examples_in_batch
+					
+					input_texts = train_dataset.texts[(n_observed_examples - n_examples_in_batch):n_observed_examples]
+					input_labels = train_dataset.labels[(n_observed_examples - n_examples_in_batch):n_observed_examples]
+					batch_metadata = train_dataset.metadata[(n_observed_examples - n_examples_in_batch):n_observed_examples]
+					
+					if data_args.data_preprocessing_fn_strategy.get('train') == 'per_batch':
+						inputs = data_args.data_preprocessing_fn.get('train', data_preprocessing.identity)(
+							inputs=inputs,
+							model=model,
+							tokenizer=tokenizer,
+							**data_args.data_preprocessing_fn_kwargs.get('train', {}),
 						)
-						del inputs['expanded_length']
-				
-				inputs = {k: v.to(model.device) for k, v in inputs.items() if isinstance(v, torch.Tensor)}
-				
-				# for gpt-bert. this is recorded in the results so we know what
-				# mode the model was using for the batch whose results we're recording
-				if get_model_task(model_name_or_path=model.name_or_path) == 'LM+MLM':
-					model_mode = 'decoder' if model.config.is_decoder else 'encoder'
-				
-				model.train()
-				optimizer.zero_grad(set_to_none=True) # this is supposed to be faster than .zero_grad()
-				outputs = model(**inputs)
-				loss = compute_loss(
-					outputs=outputs, 
-					labels=inputs['labels'],
-					losses_to_compute=losses.get('train', [loss_classes.OutputsDefaultLoss()]),
-					loss_reduction_fn=data_args.loss_reduction_fns.get('train', torch.sum),
-				)
-				loss.backward()
-				
-				for callback in model_callbacks.get('pre_train_step', []):
-					callback(epoch=epoch, batch=i)
-				
-				optimizer.step()
-				model.eval()
-				
-				if trial is None:
-					addl_kwargs = dict(
-						dataset_name=re.sub(
-							r'\.(txt|json)\.gz$', 
-							'', 
-							os.path.split(data_args.train_file)[-1]
-						)
-					)
-					
-					# add individual losses to kwargs here.
-					for k in outputs.losses:
-						addl_kwargs[k] = outputs.losses[k].item()
-					
-					if get_model_task(model_name_or_path=model.name_or_path) == 'LM+MLM':
-						addl_kwargs.update(dict(model_mode=model_mode))
-					
-					for fn in data_args.evaluation_fns.get('train', []):
-						metrics.extend(
-							fn(
-								model=model,
-								tokenizer=tokenizer,
-								inputs=inputs,
-								input_texts=input_texts,
-								input_labels=input_labels,
-								input_nums=input_nums,
-								batch_outputs=outputs,
-								batch_metadata=batch_metadata,
-								epoch=epoch,
-								batch_number=i,
-								dataset_type='train',
-								loss=loss.item(),
-								**addl_kwargs,
-								**data_args.evaluation_fns_kwargs.get('train', {}).get(fn.__name__, {})
+						
+						if data_args.data_preprocessing_fn.get('train') in data_preprocessing.UPDATE_LABELS_FNS:
+							# update the labels if needed. This is for span denoising objectives.
+							input_labels = [tokenizer.decode(label[label != -100]) for label in input_labels]
+						
+						if 'expanded_length' in inputs:
+							input_nums, input_texts, input_labels, batch_metadata = data_preprocessing._expand_rows(
+								input_nums,
+								input_texts,
+								input_labels,
+								batch_metadata,
+								expanded_lengths=inputs['expanded_length'],
 							)
+							del inputs['expanded_length']
+					
+					inputs = {k: v.to(model.device) for k, v in inputs.items() if isinstance(v, torch.Tensor)}
+					
+					# for gpt-bert. this is recorded in the results so we know what
+					# mode the model was using for the batch whose results we're recording
+					if get_model_task(model_name_or_path=model.name_or_path) == 'LM+MLM':
+						model_mode = 'decoder' if model.config.is_decoder else 'encoder'
+					
+					model.train()
+					optimizer.zero_grad(set_to_none=True) # this is supposed to be faster than .zero_grad()
+					outputs = model(**inputs)
+					loss = compute_loss(
+						outputs=outputs, 
+						labels=inputs['labels'],
+						losses_to_compute=losses.get('train', [loss_classes.OutputsDefaultLoss()]),
+						loss_reduction_fn=data_args.loss_reduction_fns.get('train', torch.sum),
+					)
+					loss.backward()
+					
+					for callback in model_callbacks.get('pre_train_step', []):
+						callback(epoch=epoch, batch=i)
+					
+					optimizer.step()
+					model.eval()
+					
+					if trial is None:
+						addl_kwargs = dict(
+							dataset_name=dl.dataset_name
 						)
-				
-				epoch_train_losses.append(outputs.loss.item())
-				for k in outputs.losses:
-					each_train_losses[k] = each_train_losses.get(k, [])
-					each_train_losses[k].append(outputs.losses[k].item())
-				
-				for callback in model_callbacks.get('post_train_batch', []):
-					callback(epoch=epoch, batch=i)
+						
+						# add individual losses to kwargs here.
+						for k in outputs.losses:
+							addl_kwargs[k] = outputs.losses[k].item()
+						
+						if get_model_task(model_name_or_path=model.name_or_path) == 'LM+MLM':
+							addl_kwargs.update(dict(model_mode=model_mode))
+						
+						for fn in data_args.evaluation_fns.get('train', []):
+							metrics.extend(
+								fn(
+									model=model,
+									tokenizer=tokenizer,
+									inputs=inputs,
+									input_texts=input_texts,
+									input_labels=input_labels,
+									input_nums=input_nums,
+									batch_outputs=outputs,
+									batch_metadata=batch_metadata,
+									epoch=epoch,
+									batch_number=i,
+									dataset_type='train',
+									loss=loss.item(),
+									**addl_kwargs,
+									**data_args.evaluation_fns_kwargs.get('train', {}).get(fn.__name__, {})
+								)
+							)
+					
+					epoch_train_losses.append(outputs.loss.item())
+					for k in outputs.losses:
+						each_train_losses[k] = each_train_losses.get(k, [])
+						each_train_losses[k].append(outputs.losses[k].item())
+					
+					for callback in model_callbacks.get('post_train_batch', []):
+						callback(epoch=epoch, batch=i)
 			
-			for callback in model_callbacks.get('pre_validation', {}):
+				for callback in model_callbacks.get('post_train_dataset', []):
+					callback(epoch=epoch, batch=i)	
+				
+			for callback in model_callbacks.get('pre_validation', []):
 				callback(epoch=epoch, batch=i)
 			
 			# pass through the validation set
 			n_observed_examples = 0
 			epoch_validation_losses = []
 			each_validation_losses = {}
-			for i, inputs in enumerate(dataloader['validation']):
-				for callback in model_callbacks.get('pre_validation_batch', {}):
-					callback(epoch=epoch, batch=i)
+			
+			for dl in dataloader['validation']:
+				for callback in model_callbacks.get('pre_validation_dataset', [])
+					callback(epoch=epoch, batch=None)
 				
-				n_examples_in_batch = inputs['input_ids'].shape[0]
-				
-				# use this as a unique input identifier
-				input_nums = list(range(n_observed_examples, n_observed_examples + n_examples_in_batch))
-				n_observed_examples += n_examples_in_batch
-				
-				input_texts = validation_dataset.texts[(n_observed_examples - n_examples_in_batch):n_observed_examples]
-				input_labels = validation_dataset.labels[(n_observed_examples - n_examples_in_batch):n_observed_examples]
-				batch_metadata = validation_dataset.metadata[(n_observed_examples - n_examples_in_batch):n_observed_examples]
-				
-				if data_args.data_preprocessing_fn_strategy.get('validation') == 'per_batch':
-					inputs = data_args.data_preprocessing_fn.get('validation', data_preprocessing.identity)(
-						inputs=inputs,
-						model=model,
-						tokenizer=tokenizer,
-						**data_args.data_preprocessing_fn_kwargs.get('validation', {}),
-					)
+				for i, inputs in enumerate(dl):
+					for callback in model_callbacks.get('pre_validation_batch', []):
+						callback(epoch=epoch, batch=i)
 					
-					if data_args.data_preprocessing_fn.get('validation') in data_preprocessing.UPDATE_LABELS_FNS:
-						# update the labels if needed. This is for span denoising objectives.
-						input_labels = [tokenizer.decode(label[label != -100]) for label in input_labels]
+					n_examples_in_batch = inputs['input_ids'].shape[0]
 					
-					if 'expanded_length' in inputs:
-						input_nums, input_texts, input_labels, batch_metadata = data_preprocessing._expand_rows(
-							input_nums,
-							input_texts,
-							input_labels,
-							batch_metadata,
-							expanded_lengths=inputs['expanded_length'],
+					# use this as a unique input identifier
+					input_nums = list(range(n_observed_examples, n_observed_examples + n_examples_in_batch))
+					n_observed_examples += n_examples_in_batch
+					
+					input_texts = validation_dataset.texts[(n_observed_examples - n_examples_in_batch):n_observed_examples]
+					input_labels = validation_dataset.labels[(n_observed_examples - n_examples_in_batch):n_observed_examples]
+					batch_metadata = validation_dataset.metadata[(n_observed_examples - n_examples_in_batch):n_observed_examples]
+					
+					if data_args.data_preprocessing_fn_strategy.get('validation') == 'per_batch':
+						inputs = data_args.data_preprocessing_fn.get('validation', data_preprocessing.identity)(
+							inputs=inputs,
+							model=model,
+							tokenizer=tokenizer,
+							**data_args.data_preprocessing_fn_kwargs.get('validation', {}),
 						)
-						del inputs['expanded_length']
-				
-				inputs = {k: v.to(model.device) for k, v in inputs.items() if isinstance(v, torch.Tensor)}
-				
-				# for gpt-bert. this is recorded in the results so we know what
-				# mode the model was using for the batch whose results we're recording
-				if get_model_task(model_name_or_path=model.name_or_path) == 'LM+MLM':
-					model_mode = 'decoder' if model.config.is_decoder else 'encoder'
-				
-				with torch.no_grad():
-					outputs = model(**inputs)
-				
-				dev_loss = compute_loss(
-					outputs=outputs, 
-					labels=inputs['labels'],
-					losses_to_compute=losses.get('validation', [loss_classes.OutputsDefaultLoss()]),
-					loss_reduction_fn=data_args.loss_reduction_fns.get('validation', torch.sum),
-				)
-				
-				if trial is None:
-					addl_kwargs = dict(
-						dataset_name=re.sub(
-							r'\.(txt|json)\.gz$', '', os.path.split(data_args.validation_file)[-1]
-						)
-					)
-					
-					# add individual losses to kwargs here.
-					for k in outputs.losses:
-						addl_kwargs[k] = outputs.losses[k].item()
-					
-					if get_model_task(model_name_or_path=model.name_or_path) == 'LM+MLM':
-						addl_kwargs.update(dict(model_mode=model_mode))
-					
-					for fn in data_args.evaluation_fns.get('validation', []):
-						metrics.extend(
-							fn(
-								model=model,
-								tokenizer=tokenizer,
-								inputs=inputs,
-								input_texts=input_texts,
-								input_labels=input_labels,
-								input_nums=input_nums,
-								batch_outputs=outputs,
-								batch_metadata=batch_metadata,
-								epoch=epoch,
-								batch_number=i,
-								dataset_type='validation',
-								loss=dev_loss.item(),
-								**addl_kwargs,
-								**data_args.evaluation_fns_kwargs.get('validation', {}).get(fn.__name__, {})
+						
+						if data_args.data_preprocessing_fn.get('validation') in data_preprocessing.UPDATE_LABELS_FNS:
+							# update the labels if needed. This is for span denoising objectives.
+							input_labels = [tokenizer.decode(label[label != -100]) for label in input_labels]
+						
+						if 'expanded_length' in inputs:
+							input_nums, input_texts, input_labels, batch_metadata = data_preprocessing._expand_rows(
+								input_nums,
+								input_texts,
+								input_labels,
+								batch_metadata,
+								expanded_lengths=inputs['expanded_length'],
 							)
+							del inputs['expanded_length']
+					
+					inputs = {k: v.to(model.device) for k, v in inputs.items() if isinstance(v, torch.Tensor)}
+					
+					# for gpt-bert. this is recorded in the results so we know what
+					# mode the model was using for the batch whose results we're recording
+					if get_model_task(model_name_or_path=model.name_or_path) == 'LM+MLM':
+						model_mode = 'decoder' if model.config.is_decoder else 'encoder'
+					
+					with torch.no_grad():
+						outputs = model(**inputs)
+					
+					dev_loss = compute_loss(
+						outputs=outputs, 
+						labels=inputs['labels'],
+						losses_to_compute=losses.get('validation', [loss_classes.OutputsDefaultLoss()]),
+						loss_reduction_fn=data_args.loss_reduction_fns.get('validation', torch.sum),
+					)
+					
+					if trial is None:
+						addl_kwargs = dict(
+							dataset_name=dl.dataset_name
 						)
+						
+						# add individual losses to kwargs here.
+						for k in outputs.losses:
+							addl_kwargs[k] = outputs.losses[k].item()
+						
+						if get_model_task(model_name_or_path=model.name_or_path) == 'LM+MLM':
+							addl_kwargs.update(dict(model_mode=model_mode))
+						
+						for fn in data_args.evaluation_fns.get('validation', []):
+							metrics.extend(
+								fn(
+									model=model,
+									tokenizer=tokenizer,
+									inputs=inputs,
+									input_texts=input_texts,
+									input_labels=input_labels,
+									input_nums=input_nums,
+									batch_outputs=outputs,
+									batch_metadata=batch_metadata,
+									epoch=epoch,
+									batch_number=i,
+									dataset_type='validation',
+									loss=dev_loss.item(),
+									**addl_kwargs,
+									**data_args.evaluation_fns_kwargs.get('validation', {}).get(fn.__name__, {})
+								)
+							)
+					
+					epoch_validation_losses.append(dev_loss.item())
+					for k in outputs.losses:
+						each_validation_losses[k] = each_validation_losses.get(k, [])
+						each_validation_losses[k].append(outputs.losses[k].item())
+					
+					for callback in model_callbacks.get('post_validation_batch', []):
+						callback(epoch=epoch, batch=i)
 				
-				epoch_validation_losses.append(dev_loss.item())
-				for k in outputs.losses:
-					each_validation_losses[k] = each_validation_losses.get(k, [])
-					each_validation_losses[k].append(outputs.losses[k].item())
-				
-				for callback in model_callbacks.get('post_validation_batch', []):
-					callback(epoch=epoch, batch=i)
+				for callback in model_callbacks.get('post_validation_dataset', []):
+					callback(epoch=epoch, batch=None)
 			
 			# patience implementation
 			if np.mean(epoch_validation_losses) < best_dev_loss - data_args.delta:
@@ -757,33 +775,73 @@ def finetune_lm(
 	
 	# if we don't provide a train file, this lets us just evaluate the model
 	if data_args.train_file:
-		train_dataset = Dataset(
-			file=data_args.train_file,
-			model=model,
-			tokenizer=tokenizer,
-			split_name='train',
-			max_samples=data_args.max_train_samples,
-			max_length=data_args.max_length,
-			preprocessing_num_workers=data_args.preprocessing_num_workers,
-			overwrite_cache=data_args.overwrite_cache,
-			data_preprocessing_fn=data_args.data_preprocessing_fn.get('train', data_preprocessing.identity),
-			data_preprocessing_fn_kwargs=data_args.data_preprocessing_fn_kwargs.get('train', {}),
-			data_preprocessing_fn_strategy=data_args.data_preprocessing_fn_strategy.get('train', 'once'),
-		)
+		if not isinstance(data_args.train_file, list):
+			data_args.train_file = [data_args.train_file]
 		
-		validation_dataset = Dataset(
-			file=data_args.validation_file,
-			model=model,
-			tokenizer=tokenizer,
-			split_name='validation',
-			max_samples=data_args.max_validation_samples,
-			max_length=data_args.max_length,
-			preprocessing_num_workers=data_args.preprocessing_num_workers,
-			overwrite_cache=data_args.overwrite_cache,
-			data_preprocessing_fn=data_args.data_preprocessing_fn.get('validation', data_preprocessing.identity),
-			data_preprocessing_fn_kwargs=data_args.data_preprocessing_fn_kwargs.get('validation', {}),
-			data_preprocessing_fn_strategy=data_args.data_preprocessing_fn_strategy.get('validation', 'once'),
-		)
+		train_dataset = []
+		for file in data_args.train_file:
+			train_dataset_basename = re.sub(r'\.(txt|json)\.gz', '', os.path.split(file)[-1])
+			train_dataset.append(
+				Dataset(
+					file=file,
+					model=model,
+					tokenizer=tokenizer,
+					split_name='train',
+					max_samples=data_args.max_train_samples,
+					max_length=data_args.max_length,
+					preprocessing_num_workers=data_args.preprocessing_num_workers,
+					overwrite_cache=data_args.overwrite_cache,
+					data_preprocessing_fn=(
+						data_args.data_preprocessing_fn
+							.get('train', {})
+							.get(train_dataset_basename, data_preprocessing.identity)
+					),
+					data_preprocessing_fn_kwargs=(
+						data_args.data_preprocessing_fn_kwargs
+							.get('train', {})
+							.get(train_dataset_basename, {})
+					),
+					data_preprocessing_fn_strategy=(
+						data_args.data_preprocessing_fn_strategy
+						.get('train', {})
+						.get(train_dataset_basename, 'once')
+					)
+				)
+			)
+		
+		if not isinstance(data_args.validation_file, list):
+			data_args.validation_file = [data_args.validation_file]
+		
+		validation_dataset = []
+		for file in data_args.validation_file:
+			validation_dataset_basename = re.sub(r'\.(txt|json)\.gz', '', os.path.split(file)[-1])
+			validation_dataset.append(
+				Dataset(
+					file=file,
+					model=model,
+					tokenizer=tokenizer,
+					split_name='validation',
+					max_samples=data_args.max_validation_samples,
+					max_length=data_args.max_length,
+					preprocessing_num_workers=data_args.preprocessing_num_workers,
+					overwrite_cache=data_args.overwrite_cache,
+					data_preprocessing_fn=(
+						data_args.data_preprocessing_fn
+							.get('validation', {})
+							.get(validation_dataset_basename, data_preprocessing.identity)
+					),
+					data_preprocessing_fn_kwargs=(
+						data_args.data_preprocessing_fn_kwargs
+							.get('validation', {})
+							.get(validation_dataset_basename, {})
+					),
+					data_preprocessing_fn_strategy=(
+						data_args.data_preprocessing_fn_strategy
+						.get('validation', {})
+						.get(validation_dataset_basename, 'once')
+					),
+				)
+			)
 		
 		best_dev_loss = finetune_model(
 			model=model,
@@ -806,6 +864,7 @@ def finetune_lm(
 		test_results = []
 		logger.info('Beginning testing...')
 		for test_file in data_args.test_file:
+			test_dataset_basename = re.sub(r'\.(txt|json)\.gz', '', os.path.split(test_file)[-1])
 			test_dataset = Dataset(
 				file=test_file,
 				model=model,
@@ -815,9 +874,21 @@ def finetune_lm(
 				max_length=data_args.max_length,
 				preprocessing_num_workers=data_args.preprocessing_num_workers,
 				overwrite_cache=data_args.overwrite_cache,
-				data_preprocessing_fn=data_args.data_preprocessing_fn.get('test', data_preprocessing.identity),
-				data_preprocessing_fn_kwargs=data_args.data_preprocessing_fn_kwargs.get('test', {}),
-				data_preprocessing_fn_strategy=data_args.data_preprocessing_fn_strategy.get('test', 'once'),
+				data_preprocessing_fn=(
+					data_args.data_preprocessing_fn
+						.get('test', {})
+						.get(test_dataset_basename, data_preprocessing.identity)
+				),
+				data_preprocessing_fn_kwargs=(
+					data_args.data_preprocessing_fn_kwargs
+						.get('test', {})
+						.get(test_dataset_basename, data_preprocessing.identity)
+				),
+				data_preprocessing_fn_strategy=(
+					data_args.data_preprocessing_fn_strategy
+						.get('test', {})
+						.get(test_dataset_basename, data_preprocessing.identity)
+				),
 			)
 			
 			test_results.extend(
@@ -828,7 +899,7 @@ def finetune_lm(
 					model_args=model_args,
 					data_args=data_args,
 					**dict(
-						dataset_name=re.sub(r'\.(txt|json)\.gz$', '', os.path.split(test_file)[-1])
+						dataset_name=test_dataset.basename
 					)
 				)
 			)

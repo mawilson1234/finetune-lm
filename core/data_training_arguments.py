@@ -116,9 +116,9 @@ class DataTrainingArguments:
 	
 	data_preprocessing_fn: Optional[Union[Callable, dict[str,Callable]]] = field(
 		default_factory=lambda: {
-			'train': data_preprocessing.identity,
-			'validation': data_preprocessing.identity,
-			'test': data_preprocessing.identity,
+			'train': {},
+			'validation': {},
+			'test': {},
 		},
 		metadata={
 			"help": 'For each type of dataset, a function to use for additional data preprocessing '
@@ -280,7 +280,7 @@ class DataTrainingArguments:
 	output_dir: Optional[str] = field(
 		default=None,
 		metadata={
-			"help": "Used to store the output directory name. Do not set manually."
+			"help": "Used to store the output directory name. Will be set automatically if not provided."
 		}	
 	)
 	
@@ -314,7 +314,7 @@ class DataTrainingArguments:
 		if self.output_dir is not None:
 			return
 		
-		if self.train_file is not None:
+		if self.train_file is not None and isinstance(self.train_file, str):
 			baseline = re.sub(r'\.(txt|json)\.gz$', '', os.path.split(self.train_file)[-1])
 			self.output_dir = os.path.join(
 				'outputs',
@@ -329,7 +329,7 @@ class DataTrainingArguments:
 					model_name.replace('/', '-'),
 					datetime.now().strftime('%Y-%m-%d_%I-%M-%S.%f'),
 				)
-		else:
+		elif self.train_file is not None:
 			self.output_dir = os.path.join(
 				'outputs',
 				'test_only',
@@ -341,6 +341,10 @@ class DataTrainingArguments:
 					'test_only',
 					model_name.replace('/', '-')
 				)
+		else:
+			raise ValueError(
+				'When using multiple training datasets, please set the output directory manually.'
+			)
 	
 	def __post_init__(self):
 		if self.train_file is None and self.validation_file is None and self.test_file is None:

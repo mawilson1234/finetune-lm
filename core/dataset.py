@@ -108,6 +108,7 @@ class Dataset:
 			data_preprocessing_fn_strategy=data_preprocessing_fn_strategy,
 		)
 		self.num_rows = len(self)
+		self.basename = re.sub(r'\.(txt|json)\.gz', '', os.path.split(self.file)[-1])
 	
 	def load_metadata(self) -> list[dict[str,str]]:
 		try:
