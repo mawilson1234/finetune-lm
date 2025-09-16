@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=pythia-2.8b-baselines
+#SBATCH --job-name=llama-3.2-1b-baselines
 #SBATCH --output=joblogs/%x_%j.txt
 #SBATCH --mem=80G
 #SBATCH --partition=gpu
@@ -12,11 +12,12 @@ module load miniconda
 
 source activate finetune-lm
 
-echo "Running script scripts/crined_drink/pythia-2.8b-baselines.sh"
+echo "Running script scripts/crined_drink/llama-3.2-1b-baselines.sh"
 echo ""
 
 python core/finetune_lm.py \
-	--model_name_or_path "'EleutherAI/pythia-2.8b'" \
+	--model_name_or_path "'meta-llama/Llama-3.2-1B'" \
+	--token "'~/.hf_auth_token'" \
 	--use_gpu \
 	--test_file "'data/syn_blorked_ext_dr_for_human_exp/syn_blorked_ext_dr_for_human_exp.txt.gz'" \
 				"'data/syn_blorked_SVO-OSV_bv_for_human_exp/syn_blorked_SVO-OSV_bv_for_human_exp.txt.gz'" \
@@ -52,4 +53,4 @@ python core/finetune_lm.py \
 				"'data/syn_unseffed_SVO-OSV_bv_for_human_exp/syn_unseffed_SVO-OSV_bv_for_human_exp.txt.gz'" \
 				"'data/syn_unseffed_SVO-OSV_wr_for_human_exp/syn_unseffed_SVO-OSV_wr_for_human_exp.txt.gz'" \
 				"'data/combined_fillers_for_human_exp/combined_fillers_for_human_exp.txt.gz'" \
-	--output_dir "'outputs/baseline/EleutherAI-pythia2.8b'"
+	--output_dir "'outputs/baseline/meta-llama-Llama-3.2-1B'"
