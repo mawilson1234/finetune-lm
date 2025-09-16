@@ -2,7 +2,7 @@
 
 #SBATCH --job-name=olmo-2-1b-crined-dr-optim
 #SBATCH --output=joblogs/%x_%j.txt
-#SBATCH --mem=80G
+#SBATCH --mem=48G
 #SBATCH --partition=gpu
 #SBATCH --gpus=1
 #SBATCH --constraint=a100
@@ -22,8 +22,7 @@ python core/finetune_lm.py \
 	--train_file "'data/crined_transitive_SVO-OSV_dr_for_human_exp/crined_transitive_SVO-OSV_dr_for_human_exp.txt.gz'" \
 	--validation_file "'data/crined_passive_SVO-OSV_dr_for_human_exp/crined_passive_SVO-OSV_dr_for_human_exp.txt.gz'" \
 	--patience 30 \
-	--epochs 1000 \
-	--min_epochs 100 \
+	--epochs 100 \
 	--loss_classes.train loss_classes.OutputsDefaultLoss \
 						 loss_classes.KLBaselineLoss \
 	--loss_classes_kwargs.train.KLBaselineLoss.dataset "'data/miniboki_train/miniboki_train.txt.gz'" \
@@ -40,7 +39,7 @@ python core/finetune_lm.py \
 	--params.train_KLBaselineLoss_scaleby.suggest_kwargs.log \
 	--study_kwargs.storage optuna.storages.JournalStorage \
 	--study_kwargs.storage_kwargs.log_storage optuna.storages.journal.JournalFileBackend \
-	--study_kwargs.storage_kwargs.log_storage_kwargs.file_path "'./outputs/crined_transitive_SVO-OSV_dr_for_human_exp/optuna_journal_storage_pythia.log'" \
+	--study_kwargs.storage_kwargs.log_storage_kwargs.file_path "'./outputs/crined_transitive_SVO-OSV_dr_for_human_exp/optuna_journal_storage_olmo.log'" \
 	--study_kwargs.storage_kwargs.log_storage_kwargs.lock_obj optuna.storages.journal.JournalFileOpenLock \
-	--study_kwargs.storage_kwargs.log_storage_kwargs.lock_obj_kwargs.filepath "'./outputs/crined_transitive_SVO-OSV_dr_for_human_exp/optuna_journal_storage_pythia.log'" \
+	--study_kwargs.storage_kwargs.log_storage_kwargs.lock_obj_kwargs.filepath "'./outputs/crined_transitive_SVO-OSV_dr_for_human_exp/optuna_journal_storage_olmo.log'" \
 	--study_kwargs.load_if_exists
