@@ -313,6 +313,36 @@ class SetDecoderModeCallback:
 	def __call__(self, epoch: int, batch: int) -> None:
 		self.model.config.is_decoder = True
 
+class SwitchEncoderDecoderModesToOppositeOfWhenLastCalledCallback:
+	def __init__(
+		self, model: AutoModel, tokenizer: AutoTokenizer,
+		log_switch: bool = False,
+	):
+		self.model = model
+		self.prev_state = self.model.config.is_decoder
+		
+		# we don't want to switch on the first call, since
+		# that is counterintuitive with the 'start' argument +
+		# the freq argument.
+		self._first_call = True
+		self.log_switch = log_switch
+		
+		if self.log_switch:
+			state = 'decoder' if self.model.config.is_decoder else 'encoder'
+			logger.info(f'{self.__class__.__name__}: {model.name_or_path} starting in {state} mode.')
+	
+	def __call__(self, epoch: int, batch: int) -> None:
+		# return early on the first call so we don't switch
+		if self._first_call:
+			self._first_call = False
+			return
+		
+		# always swap to the opposite of the previous state
+		# when this callback was last invoked, regardless of
+		# the current state.
+		self.model.config.is_decoder = not self.prev_state
+		self.prev_state = self.model.config.is_decoder
+
 def add_new_tokens(
 	model: AutoModel, 
 	tokenizer: AutoTokenizer, 
