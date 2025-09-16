@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=llama-3.2-3b-crined-dr-optim
+#SBATCH --job-name=llama-3.2-1b-crined-dr-optim
 #SBATCH --output=joblogs/%x_%j.txt
 #SBATCH --mem=80G
 #SBATCH --partition=gpu
@@ -13,11 +13,11 @@ module load miniconda
 
 source activate finetune-lm
 
-echo "Running script scripts/crined_drink/llama-3.2-3b-crined-dr-optim.sh"
+echo "Running script scripts/crined_drink/llama-3.2-1b-crined-dr-optim.sh"
 echo ""
 
 python core/finetune_lm.py \
-	--model_name_or_path "'meta-llama/Llama-3.2-3B'" \
+	--model_name_or_path "'meta-llama/Llama-3.2-1B'" \
 	--use_gpu \
 	--token "'~/.hf_auth_token'" \
 	--train_file "'data/crined_transitive_SVO-OSV_dr_for_human_exp/crined_transitive_SVO-OSV_dr_for_human_exp.txt.gz'" \
@@ -41,7 +41,7 @@ python core/finetune_lm.py \
 	--params.train_KLBaselineLoss_scaleby.suggest_kwargs.log \
 	--study_kwargs.storage optuna.storages.JournalStorage \
 	--study_kwargs.storage_kwargs.log_storage optuna.storages.journal.JournalFileBackend \
-	--study_kwargs.storage_kwargs.log_storage_kwargs.file_path "'./outputs/crined_transitive_SVO-OSV_dr_for_human_exp/meta-llama-Llama-3.2-3B/optuna_journal_storage_llama3_2.log'" \
+	--study_kwargs.storage_kwargs.log_storage_kwargs.file_path "'./outputs/crined_transitive_SVO-OSV_dr_for_human_exp/meta-llama-Llama-3.2-1B/optuna_journal_storage_llama3.2-1B.log'" \
 	--study_kwargs.storage_kwargs.log_storage_kwargs.lock_obj optuna.storages.journal.JournalFileOpenLock \
-	--study_kwargs.storage_kwargs.log_storage_kwargs.lock_obj_kwargs.filepath "'./outputs/crined_transitive_SVO-OSV_dr_for_human_exp/meta-llama-Llama-3.2-3B/optuna_journal_storage_llama3_2.log'" \
+	--study_kwargs.storage_kwargs.log_storage_kwargs.lock_obj_kwargs.filepath "'./outputs/crined_transitive_SVO-OSV_dr_for_human_exp/meta-llama-Llama-3.2-1B/optuna_journal_storage_llama3.2-1B.log'" \
 	--study_kwargs.load_if_exists
