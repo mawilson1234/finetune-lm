@@ -262,10 +262,10 @@ class SwitchEncoderDecoderModesCallback:
 		elif self.start == 'decoder':
 			self.model.config.is_encoder = True
 		
-		# we don't want to switch on the first call, since
-		# that is counterintuitive with the 'start' argument +
-		# the freq argument.
-		self._first_call = True
+		# # we don't want to switch on the first call by default, since
+		# # that is counterintuitive with the 'start' argument +
+		# # the freq argument.
+		# self._first_call = True
 		self.log_switch = log_switch
 		
 		if self.log_switch:
@@ -276,10 +276,10 @@ class SwitchEncoderDecoderModesCallback:
 		# add once since we start at zero and don't want to 
 		# switch on the 0th epoch.
 		
-		# return early on the first call so we don't switch
-		if self._first_call:
-			self._first_call = False
-			return
+		# # return early on the first call so we don't switch
+		# if self._first_call:
+		# 	self._first_call = False
+		# 	return
 		
 		if epoch is not None and self.strategy == 'epoch' and epoch % self.freq == 0:
 			self.model.config.is_decoder = not self.model.config.is_decoder
@@ -333,6 +333,9 @@ class SwitchEncoderDecoderModesToOppositeOfWhenLastCalledCallback:
 	
 	def __call__(self, epoch: int, batch: int) -> None:
 		# return early on the first call so we don't switch
+		# this is because we want it to switch based on the state
+		# when it was last *called* not the opposite of when it
+		# was *initialized*
 		if self._first_call:
 			self._first_call = False
 			return

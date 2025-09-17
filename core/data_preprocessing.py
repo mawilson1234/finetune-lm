@@ -7,6 +7,7 @@ logger = logging.getLogger(__name__)
 import numpy as np
 
 from typing import Callable, Any
+from functools import reduce
 from collections import Counter
 from transformers import AutoTokenizer, AutoModel
 

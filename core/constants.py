@@ -270,6 +270,10 @@ def set_model_task(model_name_or_path: str, model_task: str) -> None:
 	if model_task is None:
 		return
 	
+	if model_task.lower() == 'lm+mlm':
+		NEXT_WORD_MODELS.update({model_name_or_path})
+		MASKED_LANGUAGE_MODELS.update({model_name_or_path})
+	
 	if model_task.lower() == 'lm':
 		NEXT_WORD_MODELS.update({model_name_or_path})
 	

@@ -199,6 +199,13 @@ class DataTrainingArguments:
 		}
 	)
 	
+	gradient_accumulation_steps: Optional[int] = field(
+		default=1,
+		metadata={
+			"help": 'How many batches to accumulate loss over before doing a step of gradient descent.'
+		}
+	)
+	
 	loss_classes: Optional[dict] = field(
 		default_factory=lambda: {
 			'train': [loss_classes.OutputsDefaultLoss],

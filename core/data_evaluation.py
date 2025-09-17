@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from typing import Callable
 from constants import *
 from transformers import (
+	AutoModel,
 	AutoTokenizer,
 	AutoModelForCausalLM,
 	AutoModelForMaskedLM,
@@ -125,15 +126,18 @@ def get_model_task(model_name_or_path: str) -> str:
 	
 	raise ValueError(model_not_supported_message(model_name_or_path))
 
-def get_model_eval_function(model_name_or_path: str) -> Callable:
+def get_model_eval_function(model: AutoModel, model_name_or_path: str) -> Callable:
 	'''
 	Returns the appropriate function for eval based on the kind of 
 	model.
 	'''
-	# for gpt-bert. We'll just get the surprisal for each token, like
-	# causal lm.
+	# for gpt-bert, we want to get the results for the specific mode the
+	# model is in.
 	if get_model_task(model_name_or_path=model_name_or_path) == 'LM+MLM':
-		return evaluate_LM_batch
+		if model.config.is_decoder:
+			return evaluate_LM_batch
+		
+		return evaluate_MLM_batch
 	
 	if get_model_task(model_name_or_path=model_name_or_path) == 'LM':
 		return evaluate_LM_batch
@@ -171,7 +175,9 @@ def evaluate_batch(
 	if batch_metadata is None:
 		batch_metadata = {}
 	
-	model_eval_function = get_model_eval_function(model_name_or_path=model.name_or_path)
+	model_eval_function = get_model_eval_function(
+		model=model, model_name_or_path=model.name_or_path
+	)
 	
 	return model_eval_function(
 		model=model, 
@@ -311,7 +317,7 @@ def evaluate_MLM_batch(
 	
 	metrics = []
 	records = zip(
-		input_nums, input_texts, input_labels, labels, starting_ids, inputs['input_ids'],
+		input_nums, input_texts, input_labels, labels, starting_ids, input_ids,
 		mask_locations[-1], word_ids, label_word_ids, batch_surprisals, batch_metadata,
 		strict=True
 	)

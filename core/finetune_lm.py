@@ -247,7 +247,7 @@ def finetune_model(
 	for when_to_run_callbacks in model_args.model_callbacks:
 		model_callbacks[when_to_run_callbacks] = model_args.model_callbacks[when_to_run_callbacks]
 		if model_callbacks[when_to_run_callbacks] and not isinstance(model_callbacks[when_to_run_callbacks], list):
-			model_callbacks[when_to_run_callbacks] = [model_args.model_callbacks[when_to_run_callbacks]]
+			model_callbacks[when_to_run_callbacks] = [model_callbacks[when_to_run_callbacks]]
 		
 		if model_callbacks[when_to_run_callbacks]:
 			model_callbacks[when_to_run_callbacks] = [
@@ -279,6 +279,9 @@ def finetune_model(
 	# with the values set to the dataclass. It's ugly since we're duplicating the 
 	# info in multiple places, but it works.
 	optimizer_kwargs = {k: getattr(data_args, k) for k in data_args.train_optimizer_kwargs}
+	if 'lr' in optimizer_kwargs:
+		optimizer_kwargs['lr'] = optimizer_kwargs['lr'] * data_args.gradient_accumulation_steps
+	
 	optimizer = data_args.train_optimizer(params=model.parameters(), **optimizer_kwargs)
 	
 	if trial is None:
@@ -364,12 +367,18 @@ def finetune_model(
 					losses_to_compute=losses.get('train', [loss_classes.OutputsDefaultLoss()]),
 					loss_reduction_fn=data_args.loss_reduction_fns.get('train', torch.sum),
 				)
+				loss /= data_args.gradient_accumulation_steps
 				loss.backward()
 				
 				for callback in model_callbacks.get('pre_train_step', []):
 					callback(epoch=epoch, batch=i)
 				
-				optimizer.step()
+				if (
+					(i + 1) % data_args.gradient_accumulation_steps == 0 or 
+					(i + 1) == len(dataloader['train'])
+				):
+					optimizer.step()
+				
 				model.eval()
 				
 				if trial is None:
