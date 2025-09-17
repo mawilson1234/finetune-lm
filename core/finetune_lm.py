@@ -293,6 +293,9 @@ def finetune_model(
 		best_dev_loss = float('inf')
 		best_epoch = 0
 		
+		for callback in model_callbacks.get('pre_training', []):
+			callback(epoch=None, batch=None)
+		
 		for epoch in epochs:
 			for callback in model_callbacks.get('begin_epoch', []):
 				callback(epoch=epoch, batch=None)
@@ -562,6 +565,9 @@ def finetune_model(
 					f'(min_epochs={data_args.min_epochs}). Halting training at epoch {epoch}.'
 				)
 				break
+	
+	for callback in model_callbacks.get('post_training', []):
+		callback(epoch=None, batch=None)
 	
 	if trial is None:
 		metrics = pd.DataFrame(metrics)

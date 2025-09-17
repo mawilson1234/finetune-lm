@@ -104,6 +104,7 @@ class ModelArguments:
 	
 	model_callbacks: Optional[dict[str,list]] = field(
 		default_factory=lambda: {
+			'pre_training': [],
 			'begin_epoch': [],
 			'pre_train_batch': [],
 			'pre_train_step': [],
@@ -114,6 +115,7 @@ class ModelArguments:
 			'end_epoch': [],
 			'pre_test_batch': [],
 			'post_test_batch': [],
+			'post_training': []
 		},
 		metadata={
 			"help": "Callbacks, implemented as classes that take the model + kwargs when "
@@ -124,6 +126,7 @@ class ModelArguments:
 	
 	model_callbacks_kwargs: Optional[dict] = field(
 		default_factory=lambda: {
+			'pre_training': {},
 			'begin_epoch': {},
 			'pre_train_batch': {},
 			'pre_train_step': {},
@@ -134,6 +137,7 @@ class ModelArguments:
 			'end_epoch': {},
 			'pre_test_batch': {},
 			'post_test_batch': {},
+			'post_training': {},
 		},
 		metadata={
 			"help": "Kwargs, besides the model, to be passed to the model_callback "

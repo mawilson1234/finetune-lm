@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=ltg-gpt-bert-babylm-base-crined-dr-optim
+#SBATCH --job-name=ltg-gpt-bert-babylm-base-crined-dr-lm+mlm-optim
 #SBATCH --output=joblogs/%x_%j.txt
 #SBATCH --mem=16G
 #SBATCH --partition=gpu
@@ -63,7 +63,7 @@ python core/finetune_lm.py \
 	--params.train_KLBaselineLoss_scaleby.suggest_kwargs.log \
 	--study_kwargs.storage optuna.storages.JournalStorage \
 	--study_kwargs.storage_kwargs.log_storage optuna.storages.journal.JournalFileBackend \
-	--study_kwargs.storage_kwargs.log_storage_kwargs.file_path "'./outputs/crined_transitive_SVO-OSV_dr_for_human_exp/ltg-gpt-bert-babylm-base/optuna_journal_storage_ltg-gpt-bert-babylm-base.log'" \
+	--study_kwargs.storage_kwargs.log_storage_kwargs.file_path "'./outputs/crined_transitive_SVO-OSV_dr_for_human_exp/ltg-gpt-bert-babylm-base/optuna_journal_storage_ltg-gpt-bert-babylm-base-lm+mlm.log'" \
 	--study_kwargs.storage_kwargs.log_storage_kwargs.lock_obj optuna.storages.journal.JournalFileOpenLock \
-	--study_kwargs.storage_kwargs.log_storage_kwargs.lock_obj_kwargs.filepath "'./outputs/crined_transitive_SVO-OSV_dr_for_human_exp/ltg-gpt-bert-babylm-base/optuna_journal_storage_ltg-gpt-bert-babylm-base.log'" \
+	--study_kwargs.storage_kwargs.log_storage_kwargs.lock_obj_kwargs.filepath "'./outputs/crined_transitive_SVO-OSV_dr_for_human_exp/ltg-gpt-bert-babylm-base/optuna_journal_storage_ltg-gpt-bert-babylm-base-lm+mlm.log'" \
 	--study_kwargs.load_if_exists

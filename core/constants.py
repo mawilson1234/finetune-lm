@@ -349,16 +349,22 @@ def load_model(model_name_or_path: str, *args, **kwargs) -> 'AutoModel':
 	# ThE second clause is needed to deal with 
 	# gpt-bert, which can be used as both a causal
 	# lm or as a masked lm, but we want to load
-	# it as a masked LM.
-	if model_name_or_path in NEXT_WORD_MODELS and not model_name_or_path in MASKED_LANGUAGE_MODELS:
+	# it as a masked LM always (using it in decoder
+	# model just means setting model.config.is_decoder to True)
+	if (
+		model_name_or_path in NEXT_WORD_MODELS and 
+		not model_name_or_path in MASKED_LANGUAGE_MODELS
+	):
 		model = AutoModelForCausalLM.from_pretrained(
 			model_name_or_path, *args, **kwargs
 		)
 		# store any kwargs in the model so
 		# we can pass them to the KL baseline loss later
 		setattr(model, 'model_kwargs', kwargs)
-		if any(m == model_name_or_path for m in GPT2_MODELS | PYTHIA_MODELS):
+		if not hasattr(model.config, 'pad_token_id'):
 			model.config.pad_token_id = model.config.eos_token_id
+		
+		if not hasattr(model.config, 'bos_token_id'):
 			model.config.bos_token_id = model.config.eos_token_id
 		
 		return model
@@ -393,9 +399,11 @@ def load_tokenizer(tokenizer_name_or_path: str, *args, **kwargs) -> AutoTokenize
 	if tokenizer.name_or_path in HF_LLAMA_MODELS:
 		tokenizer.add_special_tokens({'pad_token': '[PAD]'})
 	
-	if any(t == tokenizer_name_or_path for t in GPT2_MODELS | PYTHIA_MODELS):
+	if not hasattr(tokenizer, 'pad_token'):
 		tokenizer.pad_token = tokenizer.eos_token
 		tokenizer.pad_token_id = tokenizer.eos_token_id
+	
+	if not hasattr(tokenizer, 'bos_token'):
 		tokenizer.bos_token = tokenizer.eos_token
 		tokenizer.bos_token_id = tokenizer.eos_token_id
 	
