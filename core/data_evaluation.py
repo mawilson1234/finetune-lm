@@ -285,7 +285,13 @@ def evaluate_MLM_batch(
 	
 	# these are the positions we want to get predictions for
 	mask_locations = torch.nonzero(inputs['input_ids'] == tokenizer.mask_token_id, as_tuple=True)
-	batch_surprisals = batch_surprisals[mask_locations]
+	
+	# for gpt bert, we want to shift these back by one, since 
+	# the prediction for mask is made at the preceding position
+	if get_model_task(model_name_or_path=model.name_or_path) == 'LM+MLM':
+		batch_surprisals = batch_surprisals[(mask_locations[0], mask_locations[-1] - 1)]
+	else:
+		batch_surprisals = batch_surprisals[mask_locations]
 	
 	# we need to repeat the text, num, and metadata associated with each input
 	# for each time a mask token occurs in that input mask_locations[0] does 
@@ -333,7 +339,7 @@ def evaluate_MLM_batch(
 			t == tokenizer.mask_token_id
 		]
 		actual_input_text = tokenizer.decode(actual_input_text)
-	
+		
 		aligned_tokens = align_words_to_subword_tokens(
 			tokenizer=tokenizer,
 			words=input_text.split(),
@@ -367,6 +373,7 @@ def evaluate_MLM_batch(
 		# so we need to adjust to find it in the starting_token_numbers,
 		# by subtracting out the starting position of the non-special tokens
 		starting_token_num_of_word = mask_location - starting_id
+		
 		# if the token doesn't start a word, we need to move backward till
 		# we find it, so we know which token in the middle of the word
 		# we want to get the surprisal for (the token at the actual

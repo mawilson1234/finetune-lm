@@ -390,7 +390,8 @@ def finetune_model(
 							r'\.(txt|json)\.gz$', 
 							'', 
 							os.path.split(data_args.train_file)[-1]
-						)
+						),
+						seed=data_args.seed,
 					)
 					
 					# add individual losses to kwargs here.
@@ -492,7 +493,8 @@ def finetune_model(
 					addl_kwargs = dict(
 						dataset_name=re.sub(
 							r'\.(txt|json)\.gz$', '', os.path.split(data_args.validation_file)[-1]
-						)
+						),
+						seed=data_args.seed,
 					)
 					
 					# add individual losses to kwargs here.
@@ -663,6 +665,7 @@ def extract_surprisals(
 	
 	n_observed_examples = 0
 	metrics = []
+	
 	for i, inputs in tqdm(enumerate(dataloader), total=len(dataloader)):
 		for callback in model_callbacks.get('pre_test_batch', []):
 			callback(epoch=None, batch=i)
@@ -818,9 +821,30 @@ def finetune_lm(
 		if isinstance(data_args.test_file, str):
 			data_args.test_file = [data_args.test_file]
 		
+		model_callbacks = {}
+		for when_to_run_callbacks in model_args.model_callbacks:
+			model_callbacks[when_to_run_callbacks] = model_args.model_callbacks[when_to_run_callbacks]
+			if model_callbacks[when_to_run_callbacks] and not isinstance(model_callbacks[when_to_run_callbacks], list):
+				model_callbacks[when_to_run_callbacks] = [model_args.model_callbacks[when_to_run_callbacks]]
+			
+			if model_callbacks[when_to_run_callbacks]:
+				model_callbacks[when_to_run_callbacks] = [
+					callback(
+						model=model, tokenizer=tokenizer,
+						**model_args.model_callbacks_kwargs.get(when_to_run_callbacks, {}).get(callback.__name__, {})
+					)
+					for callback in model_callbacks[when_to_run_callbacks]
+				]
+		
+		for callback in model_callbacks.get('pre_test', []):
+			callback(epoch=None, batch=None)
+		
 		test_results = []
 		logger.info('Beginning testing...')
 		for test_file in data_args.test_file:
+			for callback in model_callbacks.get('pre_test_dataset', []):
+				callback(epoch=None, batch=None)
+			
 			test_dataset = Dataset(
 				file=test_file,
 				model=model,
@@ -847,6 +871,9 @@ def finetune_lm(
 					)
 				)
 			)
+			
+			for callback in model_callbacks.get('post_test_dataset', []):
+				callback(epoch=None, batch=None)
 		
 		test_results = pd.DataFrame(test_results)
 		test_results = test_results.assign(
