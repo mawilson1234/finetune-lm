@@ -5,6 +5,7 @@
 #SBATCH --mem=16G
 #SBATCH --partition=gpu
 #SBATCH --gpus=1
+#SBATCH --constraint="a5000|a100"
 #SBATCH --time=02:00:00
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND
 
