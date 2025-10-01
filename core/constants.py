@@ -361,10 +361,10 @@ def load_model(model_name_or_path: str, *args, **kwargs) -> 'AutoModel':
 		# store any kwargs in the model so
 		# we can pass them to the KL baseline loss later
 		setattr(model, 'model_kwargs', kwargs)
-		if not hasattr(model.config, 'pad_token_id'):
+		if not hasattr(model.config, 'pad_token_id') or model.config.pad_token_id is None:
 			model.config.pad_token_id = model.config.eos_token_id
 		
-		if not hasattr(model.config, 'bos_token_id'):
+		if not hasattr(model.config, 'bos_token_id') or model.config.bos_token_id is None:
 			model.config.bos_token_id = model.config.eos_token_id
 		
 		return model
@@ -399,11 +399,11 @@ def load_tokenizer(tokenizer_name_or_path: str, *args, **kwargs) -> AutoTokenize
 	if tokenizer.name_or_path in HF_LLAMA_MODELS:
 		tokenizer.add_special_tokens({'pad_token': '[PAD]'})
 	
-	if not hasattr(tokenizer, 'pad_token'):
+	if not hasattr(tokenizer, 'pad_token') or tokenizer.pad_token is None:
 		tokenizer.pad_token = tokenizer.eos_token
 		tokenizer.pad_token_id = tokenizer.eos_token_id
 	
-	if not hasattr(tokenizer, 'bos_token'):
+	if not hasattr(tokenizer, 'bos_token') or tokenizer.bos_token is None:
 		tokenizer.bos_token = tokenizer.eos_token
 		tokenizer.bos_token_id = tokenizer.eos_token_id
 	
