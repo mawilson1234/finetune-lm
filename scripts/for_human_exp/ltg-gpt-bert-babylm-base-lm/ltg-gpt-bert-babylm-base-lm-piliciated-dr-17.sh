@@ -39,4 +39,5 @@ python core/finetune_lm.py \
 	--model_callbacks.pre_test model_modifiers.SetDecoderModeCallback \
 	--test_file "'data/syn_piliciated_ext_dr_for_human_exp/syn_piliciated_ext_dr_for_human_exp.txt.gz'" \
 				"'data/combined_fillers_for_human_exp_gpt-bert/combined_fillers_for_human_exp_gpt-bert.txt.gz'" \
-	--seed 17
+	--seed 17 \
+	--save_best_model_state_to_disk False

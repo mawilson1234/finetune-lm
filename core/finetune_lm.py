@@ -585,23 +585,23 @@ def finetune_model(
 		
 		metrics.to_csv(os.path.join(data_args.output_dir, 'metrics.csv.gz'), index=False, na_rep='NA')
 		
-		logger.info(f'Saving model state with lowest dev loss (epoch={best_epoch}) to disk')
-		model.save_pretrained(
-			save_directory=os.path.join(data_args.output_dir, 'model'), 
-			state_dict=best_model_state_dict,
-		)
+		if data_args.save_best_model_state_to_disk:
+			logger.info(f'Saving model state with lowest dev loss (epoch={best_epoch}) to disk')
+			model.save_pretrained(
+				save_directory=os.path.join(data_args.output_dir, 'model'), 
+				state_dict=best_model_state_dict,
+			)
+			
+			# save the tokenizer, too, in case we've modified it. Even if not, it's better than
+			# guessing what the right tokenizer is.
+			tokenizer.save_pretrained(
+				save_directory=os.path.join(data_args.output_dir, 'tokenizer'),
+			)
 		
 		# do this so that the model is in its best performing state
 		# if we go on to use it later in the script
 		logger.info('Loading model state with lowest dev loss')
 		model.load_state_dict(best_model_state_dict)
-		
-		# save the tokenizer, too. This is a bit redundant, since we haven't modified it,
-		# but it doesn't take up much space, and it makes it easier when loading later,
-		# since we don't have to guess what the right tokenizer is.
-		tokenizer.save_pretrained(
-			save_directory=os.path.join(data_args.output_dir, 'tokenizer'),
-		)
 	
 	# send back the lowest dev loss for optuna
 	return best_dev_loss

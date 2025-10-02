@@ -96,6 +96,7 @@ The `DataTrainingArguments` dataclass accepts the following parameters:
 - `test_output_file_prefix`: Set the prefix of the output file containing per-token surprisals for each sentence of each test dataset. Default is the model name, with "/" replaced by "-".
 - `seed`: an integer to set the random seeds to for reproduceability. Default is given by `random.randint(0, 2**32-1)`.
 - `save_tmp_test_files`: saves temporary `.json.gz` files that can be used to resume evaluation on a test dataset later during evaluation.
+- `save_best_model_state_to_disk`: whether to save the model state with the lowest dev loss to disk after training. Default is `True`. This is ignored if `train_dataset` is not provided or if `do_optimize` is `True`.
 
 ##### KLBaselineLoss
 

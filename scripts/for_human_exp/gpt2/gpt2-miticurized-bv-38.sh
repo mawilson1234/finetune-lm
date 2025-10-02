@@ -30,4 +30,5 @@ python core/finetune_lm.py \
 	--train_optimizer_kwargs.lr 1e-04 \
 	--test_file "'data/syn_miticurized_SVO-OSV_bv_for_human_exp/syn_miticurized_SVO-OSV_bv_for_human_exp.txt.gz'" \
 				"'data/combined_fillers_for_human_exp/combined_fillers_for_human_exp.txt.gz'" \
-	--seed 38
+	--seed 38 \
+	--save_best_model_state_to_disk False

@@ -31,4 +31,5 @@ python core/finetune_lm.py \
 	--train_optimizer_kwargs.lr 2e-05 \
 	--test_file "'data/syn_unseffed_ext_dr_for_human_exp/syn_unseffed_ext_dr_for_human_exp.txt.gz'" \
 				"'data/combined_fillers_for_human_exp/combined_fillers_for_human_exp.txt.gz'" \
-	--seed 38
+	--seed 38 \
+	--save_best_model_state_to_disk False

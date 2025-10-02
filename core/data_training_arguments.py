@@ -3,6 +3,7 @@ import re
 import sys
 import torch
 import random
+import logging
 import loss_classes
 import data_evaluation
 import data_preprocessing
@@ -14,6 +15,8 @@ from dataclasses import (
 	fields,
 	dataclass,
 )
+
+logger = logging.getLogger(__name__)
 
 DATASET_TYPES = ('train', 'validation', 'test')
 
@@ -315,6 +318,14 @@ class DataTrainingArguments:
 			"it is interrupted. Useful for large models which may not be able to finish "
 			"on time within cluster resource limits."
 		},
+	)
+	
+	save_best_model_state_to_disk: Optional[bool] = field(
+		default=True,
+		metadata={
+			"help": "Whether to save the best model state to disk if a training dataset is provided. "
+			"If no training dataset is provided or `--do_optimize` is set, this is ignored."
+		}
 	)
 	
 	def _set_output_dir(self, model_name: str) -> None:

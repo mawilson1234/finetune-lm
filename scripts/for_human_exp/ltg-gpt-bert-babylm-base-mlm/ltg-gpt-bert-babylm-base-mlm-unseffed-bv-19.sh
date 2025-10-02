@@ -54,4 +54,5 @@ python core/finetune_lm.py \
 		prince president client author committee representative choice error decision statement purchase incident \
 	--test_file "'data/syn_unseffed_SVO-OSV_bv_for_human_exp_gpt-bert/syn_unseffed_SVO-OSV_bv_for_human_exp_gpt-bert.txt.gz'" \
 				"'data/combined_fillers_for_human_exp_gpt-bert/combined_fillers_for_human_exp_gpt-bert.txt.gz'" \
-	--seed 19
+	--seed 19 \
+	--save_best_model_state_to_disk False
