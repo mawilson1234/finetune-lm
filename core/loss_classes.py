@@ -288,7 +288,7 @@ class KLBaselineLoss(KLDivLoss):
 		'''
 		# construct a comparison dataset for this call with n random examples from each dataset
 		comp_datasets = [
-			d.dataset.shuffle().select(range(n)) 
+			d.dataset.shuffle().select(range(n))
 			for d, n in zip(self.dataset, self.n_examples)
 		]
 		dataloaders = [
@@ -326,6 +326,16 @@ class KLBaselineLoss(KLDivLoss):
 						del batch['expanded_length']
 				
 				batch_inputs = {k: v.to(self.device) for k, v in batch.items() if isinstance(v, torch.Tensor)}
+				# if we pass the labels into the forward call, it calculates the CE loss
+				# this takes up enough additional compute sometimes that it can cause OOM
+				# errors. Since we don't actually need the CE loss here, we remove the labels
+				# for later. We want to keep them since we'll use them to exclude the KL div
+				# loss on the pad tokens, and the labels tell us which tokens are pad tokens.
+				labels = None
+				if 'labels' in batch_inputs:
+					labels = batch_inputs['labels'].detach().clone()
+					del batch_inputs['labels']
+				
 				outputs = self.model(**batch_inputs).logits
 				
 				# we're not training the baseline model, so no need to get gradients for it
@@ -355,8 +365,8 @@ class KLBaselineLoss(KLDivLoss):
 				# these correspond to non-masked tokens in MLM
 				# objectives where we only want to compute loss 
 				# on the mask token indices
-				if 'labels' in batch:
-					dont_ignore = (batch['labels'].detach().clone() != -100).int().to(kl_div.device)
+				if labels is not None:
+					dont_ignore = (labels != -100).int().to(kl_div.device)
 					kl_div *= dont_ignore
 					divisor *= dont_ignore
 				
