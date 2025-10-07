@@ -2,10 +2,10 @@
 
 #SBATCH --job-name=allenai-OLMo-2-0425-1B-crined-bv-07
 #SBATCH --output=joblogs/%x_%j.txt
-#SBATCH --mem=48G
+#SBATCH --mem=80G
 #SBATCH --partition=gpu
 #SBATCH --gpus=1
-#SBATCH --constraint=a100
+#SBATCH --constraint=a100-80g
 #SBATCH --time=01:00:00
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND
 
