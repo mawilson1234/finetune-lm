@@ -52,4 +52,4 @@ python core/finetune_lm.py \
 				"'data/syn_unseffed_SVO-OSV_bv_for_human_exp/syn_unseffed_SVO-OSV_bv_for_human_exp.txt.gz'" \
 				"'data/syn_unseffed_SVO-OSV_wr_for_human_exp/syn_unseffed_SVO-OSV_wr_for_human_exp.txt.gz'" \
 				"'data/combined_fillers_for_human_exp/combined_fillers_for_human_exp.txt.gz'" \
-	--output_dir "'outputs/baseline/EleutherAI-pythia2.8b'"
+	--output_dir "'outputs/baseline/EleutherAI-pythia-2.8b'"
