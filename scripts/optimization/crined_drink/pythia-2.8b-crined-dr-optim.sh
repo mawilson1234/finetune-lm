@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=pythia2_8b-crined-dr-optim
+#SBATCH --job-name=pythia-2.8b-crined-dr-optim
 #SBATCH --output=joblogs/%x_%j.txt
 #SBATCH --mem=80G
 #SBATCH --partition=gpu
@@ -13,7 +13,7 @@ module load miniconda
 
 source activate finetune-lm
 
-echo "Running script scripts/crined_drink/pythia2_8b-crined-dr-optim.sh"
+echo "Running script scripts/crined_drink/pythia-2.8b-crined-dr-optim.sh"
 echo ""
 
 python core/finetune_lm.py \
@@ -40,7 +40,7 @@ python core/finetune_lm.py \
 	--params.train_KLBaselineLoss_scaleby.suggest_kwargs.log \
 	--study_kwargs.storage optuna.storages.JournalStorage \
 	--study_kwargs.storage_kwargs.log_storage optuna.storages.journal.JournalFileBackend \
-	--study_kwargs.storage_kwargs.log_storage_kwargs.file_path "'./outputs/crined_transitive_SVO-OSV_dr_for_human_exp/optuna_journal_storage_pythia.log'" \
+	--study_kwargs.storage_kwargs.log_storage_kwargs.file_path "'./outputs/crined_transitive_SVO-OSV_dr_for_human_exp/EleutherAI-pythia-2.8b/optuna_journal_storage_pythia.log'" \
 	--study_kwargs.storage_kwargs.log_storage_kwargs.lock_obj optuna.storages.journal.JournalFileOpenLock \
-	--study_kwargs.storage_kwargs.log_storage_kwargs.lock_obj_kwargs.filepath "'./outputs/crined_transitive_SVO-OSV_dr_for_human_exp/optuna_journal_storage_pythia.log'" \
+	--study_kwargs.storage_kwargs.log_storage_kwargs.lock_obj_kwargs.filepath "'./outputs/crined_transitive_SVO-OSV_dr_for_human_exp/EleutherAI-pythia-2.8b-optuna_journal_storage_pythia.log'" \
 	--study_kwargs.load_if_exists
