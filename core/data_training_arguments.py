@@ -470,6 +470,9 @@ class DataTrainingArguments:
 				for k2 in self.loss_classes_kwargs[k][klass]:
 					setattr(self, f'{k}_{klass}_{k2}', self.loss_classes_kwargs[k][klass][k2])
 					self._added_in_post_init.append(f'{k}_{klass}_{k2}')
+		
+		if self.patience is None:
+			self.patience = self.epochs
 	
 	# this lets us view attributes added during post_init
 	# that we want in the repr for reproduceability during

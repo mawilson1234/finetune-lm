@@ -176,7 +176,7 @@ class Dataset:
 			
 			start_ids = [tokenizer.bos_token_id, tokenizer.cls_token_id]
 			start_ids = [token_id for token_id in start_ids if token_id is not None]
-			if any(start_ids):
+			if len(start_ids) != 0:
 				start_id = start_ids[0]
 				for k in [k for k in model_inputs if k in ['input_ids', 'labels']]:
 					for i in range(len(model_inputs[k])):
