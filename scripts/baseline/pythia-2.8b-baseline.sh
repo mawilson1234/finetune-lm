@@ -5,6 +5,7 @@
 #SBATCH --mem=80G
 #SBATCH --partition=gpu
 #SBATCH --gpus=1
+#SBATCH --constraint=a100-80g
 #SBATCH --time=01:00:00
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND
 
