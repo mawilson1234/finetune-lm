@@ -28,8 +28,9 @@ python core/finetune_lm.py \
 						 loss_classes.KLBaselineLoss \
 	--loss_classes_kwargs.train.KLBaselineLoss.dataset "'data/miniboki_train/miniboki_train.txt.gz'" \
 	--loss_classes_kwargs.train.KLBaselineLoss.scaleby 1.5 \
+	--loss_classes_kwargs.train.KLBaselineLoss.n_examples_per_batch 10 \
 	--train_optimizer_kwargs.lr 2.5e-05 \
 	--test_file "'data/syn_crined_SVO-OSV_bv_for_human_exp/syn_crined_SVO-OSV_bv_for_human_exp.txt.gz'" \
 				"'data/combined_fillers_for_human_exp/combined_fillers_for_human_exp.txt.gz'" \
-	--seed 2 \
+	--seed 40 \
 	--save_best_model_state_to_disk False
