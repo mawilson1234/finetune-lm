@@ -413,11 +413,11 @@ class DataTrainingArguments:
 				f'`min_epochs` {self.min_epochs} cannot be greater than `epochs` {self.epochs}.'
 			)
 		
-		if self.output_dir is not None and self.train_file:
-			raise ValueError(
-				'`output_dir` is used internally for training. It should not be set manually unless running '
-				'on test files only.'
-			)
+		# if self.output_dir is not None and self.train_file:
+		# 	raise ValueError(
+		# 		'`output_dir` is used internally for training. It should not be set manually unless running '
+		# 		'on test files only.'
+		# 	)
 		
 		if isinstance(self.data_preprocessing_fn, Callable):
 			self.data_preprocessing_fn = {
