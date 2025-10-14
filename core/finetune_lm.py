@@ -765,7 +765,7 @@ def finetune_lm(
 		logger.info(f'Setting seed to {data_args.seed}.')
 		set_seed(data_args.seed)
 	
-	if data_args.output_dir is None:
+	if data_args.output_dir is None or '{now}' in data_args.output_dir:
 		data_args._set_output_dir(model_name=model_args.model_name_or_path)
 	
 	logger.info(f'Model parameters: {model_args}')

@@ -14,8 +14,8 @@ from typing import Callable
 from transformers import AutoTokenizer, AutoModel
 
 def _expand_rows(
-	original_texts: list[str], 
-	original_labels: list[str], 
+	original_texts: list[str],
+	original_labels: list[str],
 	original_metadata: list[dict],
 	expanded_lengths: torch.tensor
 ) -> None:
@@ -160,7 +160,7 @@ class Dataset:
 			'''Tokenizes a batch of string inputs.'''
 			model_inputs = tokenizer(
 				examples['text'],
-				max_length=max_length, 
+				max_length=max_length,
 				padding=True,
 				truncation=True,
 			)

@@ -454,7 +454,7 @@ def load_tokenizer_and_model(
 		config_kwargs = config_kwargs if config_kwargs is not None else {}
 		model_modifier_fns = model_modifier_fns if model_modifier_fns is not None else []
 		model_modifier_fn_kwargs = model_modifier_fn_kwargs if model_modifier_fn_kwargs is not None else {}
-		
+	
 	if name_or_path in NON_HF_LLAMA_MODELS:
 		raise ValueError(model_not_supported_message(name_or_path))
 	

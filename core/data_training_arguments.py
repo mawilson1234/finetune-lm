@@ -291,8 +291,8 @@ class DataTrainingArguments:
 		default=None,
 		metadata={
 			"help": "Used to store the output directory name. Set automatically if not provided. "
-			'${now} will be replaced with the date and time when the script is run.'
-		}	
+			'{now} will be replaced with the date and time when the script is run.'
+		}
 	)
 	
 	test_output_file_prefix: str = field(
