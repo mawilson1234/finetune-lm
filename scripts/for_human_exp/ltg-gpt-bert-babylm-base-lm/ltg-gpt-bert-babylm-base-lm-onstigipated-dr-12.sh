@@ -40,4 +40,5 @@ python core/finetune_lm.py \
 	--test_file "'data/syn_onstigipated_ext_dr_for_human_exp/syn_onstigipated_ext_dr_for_human_exp.txt.gz'" \
 				"'data/combined_fillers_for_human_exp_gpt-bert/combined_fillers_for_human_exp_gpt-bert.txt.gz'" \
 	--seed 12 \
-	--save_best_model_state_to_disk False
+	--save_best_model_state_to_disk False \
+	--output_dir outputs/onstigipated_transitive_SVO-OSV_dr_for_human_exp/ltg-gpt-bert-babylm-base-lm/{now}

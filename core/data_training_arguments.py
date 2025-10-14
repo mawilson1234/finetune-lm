@@ -290,7 +290,8 @@ class DataTrainingArguments:
 	output_dir: Optional[str] = field(
 		default=None,
 		metadata={
-			"help": "Used to store the output directory name. Do not set manually."
+			"help": "Used to store the output directory name. Set automatically if not provided. "
+			'${now} will be replaced with the date and time when the script is run.'
 		}	
 	)
 	
@@ -330,6 +331,20 @@ class DataTrainingArguments:
 	
 	def _set_output_dir(self, model_name: str) -> None:
 		if self.output_dir is not None:
+			if not '{now}' in self.output_dir:
+				return
+			
+			output_dir = self.output_dir.replace(
+				'{now}',
+				datetime.now().strftime('%Y-%m-%d_%I-%M-%S.%f'),
+			)
+			while os.path.isdir(output_dir):
+				output_dir = self.output_dir.replace(
+					'{now}',
+					datetime.now().strftime('%Y-%m-%d_%I-%M-%S.%f'),
+				)
+			
+			self.output_dir = output_dir
 			return
 		
 		if self.train_file is not None:

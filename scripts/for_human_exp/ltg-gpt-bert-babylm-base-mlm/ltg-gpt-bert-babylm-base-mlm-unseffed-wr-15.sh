@@ -55,4 +55,5 @@ python core/finetune_lm.py \
 	--test_file "'data/syn_unseffed_SVO-OSV_wr_for_human_exp_gpt-bert/syn_unseffed_SVO-OSV_wr_for_human_exp_gpt-bert.txt.gz'" \
 				"'data/combined_fillers_for_human_exp_gpt-bert/combined_fillers_for_human_exp_gpt-bert.txt.gz'" \
 	--seed 15 \
-	--save_best_model_state_to_disk False
+	--save_best_model_state_to_disk False \
+	--output_dir outputs/unseffed_transitive_SVO-OSV_wr_for_human_exp_gpt-bert/ltg-gpt-bert-babylm-base-mlm/{now}
