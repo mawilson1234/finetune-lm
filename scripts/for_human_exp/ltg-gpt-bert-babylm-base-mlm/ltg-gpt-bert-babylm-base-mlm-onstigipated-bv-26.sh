@@ -11,7 +11,7 @@
 
 module load miniconda
 
-source activate finetune-mlm
+source activate finetune-lm
 
 echo "Running script scripts/for_human_exp/ltg-gpt-bert-babylm-base-mlm/ltg-gpt-bert-babylm-base-mlm-onstigipated-bv-26.sh"
 echo ""

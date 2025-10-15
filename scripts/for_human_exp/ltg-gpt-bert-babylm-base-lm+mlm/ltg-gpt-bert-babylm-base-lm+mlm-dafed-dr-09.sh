@@ -11,7 +11,7 @@
 
 module load miniconda
 
-source activate finetune-lm+mlm
+source activate finetune-lm
 
 echo "Running script scripts/for_human_exp/ltg-gpt-bert-babylm-base-lm+mlm/ltg-gpt-bert-babylm-base-lm+mlm-dafed-dr-09.sh"
 echo ""
