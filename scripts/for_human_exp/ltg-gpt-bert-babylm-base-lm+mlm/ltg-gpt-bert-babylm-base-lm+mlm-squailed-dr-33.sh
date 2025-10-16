@@ -66,8 +66,8 @@ python core/finetune_lm.py \
 		person guest child customer patient king pizza orange snack bread sandwich cake \
 		journalist editor student scientist child actor book article document script story magazine \
 		prince president client author committee representative choice error decision statement purchase incident \
-	--test_file "'data/syn_squailed_dr_ext_for_human_exp/syn_squailed_dr_ext_for_human_exp.txt.gz'" \
-				"'data/syn_squailed_dr_ext_for_human_exp/syn_squailed_dr_ext_for_human_exp.txt.gz'" \
+	--test_file "'data/syn_squailed_ext_dr_for_human_exp/syn_squailed_ext_dr_for_human_exp.txt.gz'" \
+				"'data/syn_squailed_ext_dr_for_human_exp/syn_squailed_ext_dr_for_human_exp.txt.gz'" \
 				"'data/combined_fillers_for_human_exp_gpt-bert/combined_fillers_for_human_exp_gpt-bert.txt.gz'" \
 				"'data/combined_fillers_for_human_exp_gpt-bert/combined_fillers_for_human_exp_gpt-bert.txt.gz'" \
 	--seed 33 \
