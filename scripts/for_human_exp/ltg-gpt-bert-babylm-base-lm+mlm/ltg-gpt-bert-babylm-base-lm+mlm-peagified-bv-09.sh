@@ -66,8 +66,8 @@ python core/finetune_lm.py \
 		person guest child customer patient king pizza orange snack bread sandwich cake \
 		journalist editor student scientist child actor book article document script story magazine \
 		prince president client author committee representative choice error decision statement purchase incident \
-	--test_file "'data/syn_blorked_SVO-OSV_bv_for_human_exp_gpt-bert/syn_blorked_SVO-OSV_bv_for_human_exp_gpt-bert.txt.gz'" \
-				"'data/syn_blorked_SVO-OSV_bv_for_human_exp_gpt-bert/syn_blorked_SVO-OSV_bv_for_human_exp_gpt-bert.txt.gz'" \
+	--test_file "'data/syn_peagified_SVO-OSV_bv_for_human_exp_gpt-bert/syn_peagified_SVO-OSV_bv_for_human_exp_gpt-bert.txt.gz'" \
+				"'data/syn_peagified_SVO-OSV_bv_for_human_exp_gpt-bert/syn_peagified_SVO-OSV_bv_for_human_exp_gpt-bert.txt.gz'" \
 				"'data/combined_fillers_for_human_exp_gpt-bert/combined_fillers_for_human_exp_gpt-bert.txt.gz'" \
 				"'data/combined_fillers_for_human_exp_gpt-bert/combined_fillers_for_human_exp_gpt-bert.txt.gz'" \
 	--seed 9 \

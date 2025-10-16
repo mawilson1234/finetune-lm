@@ -682,8 +682,8 @@ def extract_surprisals(
 			
 			continue
 		
-		batch_texts = dataset.texts[(n_observed_examples - n_examples_in_batch):n_observed_examples]
-		batch_labels = dataset.labels[(n_observed_examples - n_examples_in_batch):n_observed_examples]
+		input_texts = dataset.texts[(n_observed_examples - n_examples_in_batch):n_observed_examples]
+		input_labels = dataset.labels[(n_observed_examples - n_examples_in_batch):n_observed_examples]
 		batch_metadata = dataset.metadata[(n_observed_examples - n_examples_in_batch):n_observed_examples]
 		
 		if data_args.data_preprocessing_fn_strategy.get('test') == 'per_batch':
@@ -724,8 +724,8 @@ def extract_surprisals(
 				model=model,
 				tokenizer=tokenizer,
 				inputs=inputs,
-				input_texts=batch_texts,
-				input_labels=batch_labels,
+				input_texts=input_texts,
+				input_labels=input_labels,
 				input_nums=input_nums,
 				batch_outputs=batch_outputs,
 				batch_metadata=batch_metadata,
