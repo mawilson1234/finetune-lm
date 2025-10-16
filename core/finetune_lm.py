@@ -645,8 +645,8 @@ def extract_surprisals(
 		os.makedirs(data_args.output_dir, exist_ok=True)
 	
 	model_callbacks = {}
-	for when_to_run_callbacks in model_args.model_callbacks:
-		model_callbacks[when_to_run_callbacks] = model_args.model_callbacks[when_to_run_callbacks]
+	for when_to_run_callbacks in ('pre_test_batch', 'post_test_batch'):
+		model_callbacks[when_to_run_callbacks] = model_args.model_callbacks.get(when_to_run_callbacks, [])
 		if model_callbacks[when_to_run_callbacks] and not isinstance(model_callbacks[when_to_run_callbacks], list):
 			model_callbacks[when_to_run_callbacks] = [model_args.model_callbacks[when_to_run_callbacks]]
 		
